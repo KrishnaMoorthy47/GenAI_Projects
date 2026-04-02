@@ -1,0 +1,10 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8007:8007"
+    env_file:
+      - ../.env
+    restart: unless-stopped

@@ -1,0 +1,182 @@
+[
+  {
+    "id": "tc_001",
+    "question": "How many songs are in the Melody genre?",
+    "expected_answer": "23",
+    "expected_tools": ["list_tables", "get_schema", "run_query"],
+    "min_steps": 3,
+    "difficulty": "easy",
+    "tags": ["count", "genre"]
+  },
+  {
+    "id": "tc_002",
+    "question": "How many movies are in the database?",
+    "expected_answer": "15",
+    "expected_tools": ["list_tables", "get_schema", "run_query"],
+    "min_steps": 3,
+    "difficulty": "easy",
+    "tags": ["count", "movies"]
+  },
+  {
+    "id": "tc_003",
+    "question": "What is the name of the composer with ComposerId 1?",
+    "expected_answer": "AR Rahman",
+    "expected_tools": ["list_tables", "get_schema", "run_query"],
+    "min_steps": 3,
+    "difficulty": "easy",
+    "tags": ["lookup", "composer"]
+  },
+  {
+    "id": "tc_004",
+    "question": "How many singers are in the database?",
+    "expected_answer": "12",
+    "expected_tools": ["list_tables", "get_schema", "run_query"],
+    "min_steps": 3,
+    "difficulty": "easy",
+    "tags": ["count", "singers"]
+  },
+  {
+    "id": "tc_005",
+    "question": "What genres are available in the database?",
+    "expected_answer": "Melody, Sad, Folk, Dance, Romantic, Devotional, Classical Carnatic, Comedy, Mass/Action, Duet",
+    "expected_tools": ["list_tables", "get_schema", "run_query"],
+    "min_steps": 3,
+    "difficulty": "easy",
+    "tags": ["list", "genre"]
+  },
+  {
+    "id": "tc_006",
+    "question": "What is the total number of songs in the database?",
+    "expected_answer": "92",
+    "expected_tools": ["list_tables", "get_schema", "run_query"],
+    "min_steps": 3,
+    "difficulty": "easy",
+    "tags": ["count", "songs"]
+  },
+  {
+    "id": "tc_007",
+    "question": "How many female singers are in the database?",
+    "expected_answer": "4",
+    "expected_tools": ["list_tables", "get_schema", "run_query"],
+    "min_steps": 3,
+    "difficulty": "easy",
+    "tags": ["count", "singers", "gender"]
+  },
+  {
+    "id": "tc_008",
+    "question": "How many playlists are in the database?",
+    "expected_answer": "5",
+    "expected_tools": ["list_tables", "get_schema", "run_query"],
+    "min_steps": 3,
+    "difficulty": "easy",
+    "tags": ["count", "playlists"]
+  },
+  {
+    "id": "tc_009",
+    "question": "Which composer has composed music for the most movies?",
+    "expected_answer": "AR Rahman",
+    "expected_tools": ["list_tables", "get_schema", "run_query"],
+    "min_steps": 3,
+    "difficulty": "medium",
+    "tags": ["aggregation", "composer", "movies"]
+  },
+  {
+    "id": "tc_010",
+    "question": "Which genre has the most songs?",
+    "expected_answer": "Melody",
+    "expected_tools": ["list_tables", "get_schema", "run_query"],
+    "min_steps": 3,
+    "difficulty": "medium",
+    "tags": ["aggregation", "genre", "songs"]
+  },
+  {
+    "id": "tc_011",
+    "question": "Which movie has the most songs?",
+    "expected_answer": "Alaipayuthey",
+    "expected_tools": ["list_tables", "get_schema", "run_query"],
+    "min_steps": 3,
+    "difficulty": "medium",
+    "tags": ["aggregation", "movie", "songs"]
+  },
+  {
+    "id": "tc_012",
+    "question": "What is the average song duration in minutes?",
+    "expected_answer": "4.83",
+    "expected_tools": ["list_tables", "get_schema", "run_query"],
+    "min_steps": 3,
+    "difficulty": "medium",
+    "tags": ["average", "duration", "songs"]
+  },
+  {
+    "id": "tc_013",
+    "question": "How many songs has AR Rahman composed?",
+    "expected_answer": "50",
+    "expected_tools": ["list_tables", "get_schema", "run_query"],
+    "min_steps": 3,
+    "difficulty": "medium",
+    "tags": ["count", "composer", "join"]
+  },
+  {
+    "id": "tc_014",
+    "question": "Which composer has composed the most Melody songs?",
+    "expected_answer": "AR Rahman",
+    "expected_tools": ["list_tables", "get_schema", "run_query"],
+    "min_steps": 3,
+    "difficulty": "medium",
+    "tags": ["aggregation", "composer", "genre", "join"]
+  },
+  {
+    "id": "tc_015",
+    "question": "What are the top 3 genres by number of songs?",
+    "expected_answer": "Melody (23 songs), Mass/Action (15 songs), Romantic (14 songs)",
+    "expected_tools": ["list_tables", "get_schema", "run_query"],
+    "min_steps": 3,
+    "difficulty": "medium",
+    "tags": ["ranking", "genre", "songs"]
+  },
+  {
+    "id": "tc_016",
+    "question": "Which singer has sung in the most movies?",
+    "expected_answer": "Benny Dayal",
+    "expected_tools": ["list_tables", "get_schema", "run_query"],
+    "min_steps": 3,
+    "difficulty": "medium",
+    "tags": ["aggregation", "singer", "movies", "join"]
+  },
+  {
+    "id": "tc_017",
+    "question": "List the top 5 composers by total number of songs composed.",
+    "expected_answer": "AR Rahman (50 songs), Anirudh Ravichander (24 songs), Harris Jayaraj (12 songs), GV Prakash Kumar (6 songs)",
+    "expected_tools": ["list_tables", "get_schema", "run_query"],
+    "min_steps": 3,
+    "difficulty": "hard",
+    "tags": ["ranking", "composer", "songs"]
+  },
+  {
+    "id": "tc_018",
+    "question": "What percentage of all songs are in the Melody genre?",
+    "expected_answer": "25.0%",
+    "expected_tools": ["list_tables", "get_schema", "run_query"],
+    "min_steps": 3,
+    "difficulty": "hard",
+    "tags": ["percentage", "genre", "subquery"]
+  },
+  {
+    "id": "tc_019",
+    "question": "Which songs appear in more than 2 playlists? List their titles.",
+    "expected_answer": "Chinna Chinna Aasai, Kannazhaga, Roja Janeman, Why This Kolaveri Di",
+    "expected_tools": ["list_tables", "get_schema", "run_query"],
+    "min_steps": 3,
+    "difficulty": "hard",
+    "tags": ["ranking", "playlists", "songs", "having"]
+  },
+  {
+    "id": "tc_020",
+    "question": "For each genre, what is the average song duration in seconds? Show the top 5 longest.",
+    "expected_answer": "Classical Carnatic (389.0s), Melody (328.7s), Romantic (325.8s), Sad (322.8s), Devotional (319.0s)",
+    "expected_tools": ["list_tables", "get_schema", "run_query"],
+    "min_steps": 3,
+    "difficulty": "hard",
+    "tags": ["average", "duration", "genre", "ranking"]
+  }
+]

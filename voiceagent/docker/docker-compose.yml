@@ -1,0 +1,11 @@
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: voiceagent/docker/Dockerfile
+    container_name: voiceagent_app
+    ports:
+      - "8004:8004"
+    env_file:
+      - ../.env
+    restart: unless-stopped

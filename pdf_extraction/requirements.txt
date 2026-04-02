@@ -1,5 +1,21 @@
-langchain
-langchain_openai
-langchain_community
-pandas
-llmwhisperer-client
+# Web framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+
+# Config
+pydantic-settings>=2.4.0
+
+# LLM
+langchain-core>=1.0.0
+langchain-groq>=0.2.0
+langchain-openai>=0.3.0
+
+# LLM Whisperer (OCR PDF extraction)
+llmwhisperer-client>=2.3.0
+tenacity>=8.2.0
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+httpx>=0.27.0

@@ -1,0 +1,11 @@
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: agenteval/docker/Dockerfile
+    container_name: agenteval_app
+    ports:
+      - "8003:8003"
+    env_file:
+      - ../.env
+    restart: unless-stopped

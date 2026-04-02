@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AgentEval — Interactive Demo</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #0d1117;
+    --surface: #161b22;
+    --surface2:#1c2430;
+    --border:  #30363d;
+    --text:    #e6edf3;
+    --muted:   #8b949e;
+    --green:   #3fb950;
+    --blue:    #58a6ff;
+    --red:     #f85149;
+    --yellow:  #d29922;
+    --purple:  #bc8cff;
+    --font:    'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 64px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--green);
+    letter-spacing: -0.5px;
+  }
+
+  header p {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 6px;
+  }
+
+  header .badge {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 3px 10px;
+    border: 1px solid var(--green);
+    border-radius: 20px;
+    font-size: 11px;
+    color: var(--green);
+  }
+
+  .card {
+    width: 100%;
+    max-width: 820px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 14px 20px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: color 0.15s, background 0.15s;
+    border-bottom: 2px solid transparent;
+  }
+
+  .tab-btn:hover { color: var(--text); background: var(--surface2); }
+
+  .tab-btn.active {
+    color: var(--blue);
+    border-bottom-color: var(--blue);
+    background: var(--surface2);
+  }
+
+  /* Panels */
+  .panel { display: none; padding: 28px; }
+  .panel.active { display: block; }
+
+  /* Form elements */
+  label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+
+  textarea, input[type="text"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    padding: 12px 14px;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  textarea:focus, input[type="text"]:focus {
+    border-color: var(--blue);
+  }
+
+  textarea { min-height: 72px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-primary { background: var(--blue); color: #0d1117; }
+  .btn-green   { background: var(--green); color: #0d1117; }
+
+  .form-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .form-row .btn { flex-shrink: 0; }
+
+  /* Error banner */
+  .error-banner {
+    display: none;
+    background: rgba(248,81,73,0.12);
+    border: 1px solid var(--red);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: var(--red);
+    font-size: 13px;
+    margin-top: 16px;
+  }
+
+  /* Result sections */
+  .result-section {
+    margin-top: 24px;
+    display: none;
+  }
+
+  .result-section.visible { display: block; }
+
+  .result-section h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .answer-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    font-size: 14px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* Meta row: iterations + model */
+  .meta-row {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .meta-chip {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  .meta-chip span { color: var(--text); }
+
+  /* SQL block */
+  .sql-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 12px;
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--purple);
+  }
+
+  /* Trajectory */
+  .trajectory-list { display: flex; flex-direction: column; gap: 8px; }
+
+  details.traj-step {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  details.traj-step summary {
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    list-style: none;
+    user-select: none;
+  }
+
+  details.traj-step summary::marker,
+  details.traj-step summary::-webkit-details-marker { display: none; }
+
+  details.traj-step summary .chevron {
+    font-size: 10px;
+    transition: transform 0.15s;
+    color: var(--muted);
+  }
+
+  details.traj-step[open] summary .chevron { transform: rotate(90deg); }
+
+  .step-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    background: rgba(88,166,255,0.15);
+    color: var(--blue);
+  }
+
+  .step-tool { color: var(--green); font-size: 12px; flex: 1; }
+
+  .step-body {
+    padding: 0 14px 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .step-body pre {
+    background: var(--bg);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 11px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin-top: 10px;
+    color: var(--text);
+  }
+
+  .step-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 10px;
+  }
+
+  /* Eval panel */
+  .eval-intro {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.65;
+    margin-bottom: 20px;
+  }
+
+  .eval-intro strong { color: var(--text); }
+
+  .progress-bar-wrap {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 16px;
+    display: none;
+  }
+
+  .progress-bar-inner {
+    height: 6px;
+    background: linear-gradient(90deg, var(--green), var(--blue));
+    width: 0%;
+    transition: width 0.4s ease;
+  }
+
+  .progress-label {
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* Scorecard */
+  .scorecard {
+    margin-top: 24px;
+    display: none;
+  }
+
+  .scorecard.visible { display: block; }
+
+  .scorecard h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .score-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .score-table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .score-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(48,54,61,0.5);
+  }
+
+  .score-table tr:last-child td { border-bottom: none; }
+
+  .score-bar-cell { width: 160px; }
+
+  .score-bar-bg {
+    background: var(--surface2);
+    border-radius: 4px;
+    height: 8px;
+    overflow: hidden;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: var(--green);
+    transition: width 0.6s ease;
+  }
+
+  .score-bar-fill.mid { background: var(--yellow); }
+  .score-bar-fill.low { background: var(--red); }
+
+  .score-num { font-weight: 700; color: var(--text); }
+
+  .total-row td { background: rgba(63,185,80,0.08); font-weight: 700; }
+  .total-row .score-num { color: var(--green); font-size: 16px; }
+
+  .eval-meta {
+    margin-top: 12px;
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--blue);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  footer {
+    margin-top: 40px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  footer a { color: var(--blue); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ AgentEval</h1>
+  <p>LangGraph ReAct SQL Agent + 4-Scorer Evaluation Framework</p>
+  <div class="badge">localhost:8003</div>
+</header>
+
+<div class="card">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('agent', this)">🤖 SQL Agent</button>
+    <button class="tab-btn" onclick="switchTab('eval', this)">📊 Eval Runner</button>
+  </div>
+
+  <!-- ══════════════ SQL AGENT PANEL ══════════════ -->
+  <div id="panel-agent" class="panel active">
+    <label for="query-input">Natural-language question</label>
+    <textarea id="query-input" rows="3" placeholder="e.g. How many songs are in the database? Who are the top 5 artists by song count?"></textarea>
+
+    <div class="form-row">
+      <button class="btn btn-primary" id="ask-btn" onclick="runQuery()">
+        <span id="ask-label">▶ Ask Agent</span>
+      </button>
+    </div>
+
+    <div class="error-banner" id="agent-error"></div>
+
+    <!-- Answer -->
+    <div class="result-section" id="agent-answer-section">
+      <h3>Answer</h3>
+      <div class="answer-box" id="agent-answer"></div>
+      <div class="meta-row" id="agent-meta"></div>
+    </div>
+
+    <!-- SQL Used -->
+    <div class="result-section" id="agent-sql-section">
+      <h3>SQL Executed</h3>
+      <pre class="sql-block" id="agent-sql"></pre>
+    </div>
+
+    <!-- Trajectory -->
+    <div class="result-section" id="agent-traj-section">
+      <h3>Trajectory (tool calls)</h3>
+      <div class="trajectory-list" id="agent-trajectory"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════ EVAL RUNNER PANEL ══════════════ -->
+  <div id="panel-eval" class="panel">
+    <p class="eval-intro">
+      Runs the built-in evaluation suite against the SQL Agent.
+      <strong>4 scorers</strong> — task_success, tool_accuracy, trajectory, hallucination —
+      each weighted to produce a final composite score. Results are polled every 2 s.
+    </p>
+
+    <button class="btn btn-green" id="eval-btn" onclick="runEval()">
+      ▶ Run Evaluation
+    </button>
+
+    <div class="error-banner" id="eval-error"></div>
+
+    <div class="progress-bar-wrap" id="eval-progress">
+      <div class="progress-label" id="eval-progress-label">Initialising…</div>
+      <div class="progress-bar-inner" id="eval-progress-bar"></div>
+    </div>
+
+    <div class="scorecard" id="scorecard">
+      <h3>Scorecard</h3>
+      <table class="score-table">
+        <thead>
+          <tr>
+            <th>Scorer</th>
+            <th>Weight</th>
+            <th>Score</th>
+            <th class="score-bar-cell">Visual</th>
+          </tr>
+        </thead>
+        <tbody id="score-rows"></tbody>
+      </table>
+      <div class="eval-meta" id="eval-meta-row"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <a href="/docs" target="_blank">Swagger /docs</a> &nbsp;·&nbsp;
+  <a href="/health" target="_blank">/health</a> &nbsp;·&nbsp;
+  AgentEval v1.0
+</footer>
+
+<script>
+const API = 'http://localhost:8003';
+const KEY = 'dev-secret';
+const H   = { 'Content-Type': 'application/json', 'x-api-key': KEY };
+
+// ── Tab switching ────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── Helpers ──────────────────────────────────────────────────────
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = '⚠ ' + msg;
+  el.style.display = 'block';
+}
+
+function hideError(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+function showSection(id) {
+  document.getElementById(id).classList.add('visible');
+}
+
+function hideSection(id) {
+  document.getElementById(id).classList.remove('visible');
+}
+
+// ── SQL Agent ────────────────────────────────────────────────────
+async function runQuery() {
+  const q = document.getElementById('query-input').value.trim();
+  if (!q) return;
+
+  const btn   = document.getElementById('ask-btn');
+  const label = document.getElementById('ask-label');
+  btn.disabled = true;
+  label.innerHTML = '<span class="spinner"></span> Thinking…';
+  hideError('agent-error');
+
+  ['agent-answer-section', 'agent-sql-section', 'agent-traj-section'].forEach(hideSection);
+
+  try {
+    const res = await fetch(`${API}/agent/query`, {
+      method: 'POST',
+      headers: H,
+      body: JSON.stringify({ question: q })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || res.statusText);
+    }
+
+    const data = await res.json();
+    renderAgentResult(data);
+  } catch (e) {
+    showError('agent-error', e.message);
+  } finally {
+    btn.disabled = false;
+    label.textContent = '▶ Ask Agent';
+  }
+}
+
+function renderAgentResult(data) {
+  // Answer
+  document.getElementById('agent-answer').textContent = data.answer || '(no answer)';
+  showSection('agent-answer-section');
+
+  // Meta chips
+  const meta = document.getElementById('agent-meta');
+  meta.innerHTML = '';
+  if (data.iterations != null) {
+    meta.innerHTML += `<div class="meta-chip">Iterations <span>${data.iterations}</span></div>`;
+  }
+  if (data.model) {
+    meta.innerHTML += `<div class="meta-chip">Model <span>${data.model}</span></div>`;
+  }
+
+  // SQL
+  const sqls = extractSQL(data.trajectory || []);
+  if (sqls.length) {
+    document.getElementById('agent-sql').textContent = sqls.join('\n\n');
+    showSection('agent-sql-section');
+  }
+
+  // Trajectory
+  const traj = data.trajectory || [];
+  if (traj.length) {
+    const list = document.getElementById('agent-trajectory');
+    list.innerHTML = '';
+    traj.forEach((step, i) => {
+      list.appendChild(buildStepEl(step, i + 1));
+    });
+    showSection('agent-traj-section');
+  }
+}
+
+function extractSQL(trajectory) {
+  const sqls = [];
+  for (const step of trajectory) {
+    const inp = step.tool_input || step.input || '';
+    const inpStr = typeof inp === 'object' ? JSON.stringify(inp) : String(inp);
+    // look for SELECT / INSERT / UPDATE / DELETE
+    const match = inpStr.match(/\b(SELECT|INSERT|UPDATE|DELETE|WITH|PRAGMA)\b[\s\S]*/i);
+    if (match) sqls.push(match[0].replace(/\\n/g, '\n').trim());
+  }
+  return sqls;
+}
+
+function buildStepEl(step, idx) {
+  const d = document.createElement('details');
+  d.className = 'traj-step';
+
+  const tool   = step.tool || step.action || 'step';
+  const inp    = step.tool_input || step.input || '';
+  const out    = step.tool_output || step.output || step.observation || '';
+  const inpStr = typeof inp === 'object' ? JSON.stringify(inp, null, 2) : String(inp);
+  const outStr = typeof out === 'object' ? JSON.stringify(out, null, 2) : String(out);
+
+  d.innerHTML = `
+    <summary>
+      <span class="chevron">▶</span>
+      <span class="step-badge">#${idx}</span>
+      <span class="step-tool">${escHtml(tool)}</span>
+    </summary>
+    <div class="step-body">
+      <div class="step-label">Input</div>
+      <pre>${escHtml(inpStr)}</pre>
+      <div class="step-label">Output</div>
+      <pre>${escHtml(outStr)}</pre>
+    </div>
+  `;
+  return d;
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ── Eval Runner ──────────────────────────────────────────────────
+let _pollTimer = null;
+
+async function runEval() {
+  const btn = document.getElementById('eval-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Starting…';
+  hideError('eval-error');
+
+  const scorecard = document.getElementById('scorecard');
+  scorecard.classList.remove('visible');
+
+  const progressWrap = document.getElementById('eval-progress');
+  progressWrap.style.display = 'block';
+  setProgress(5, 'Submitting eval job…');
+
+  try {
+    const runName = 'ui-run-' + Date.now();
+    const res = await fetch(`${API}/eval/run-eval`, {
+      method: 'POST',
+      headers: H,
+      body: JSON.stringify({ name: runName })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || res.statusText);
+    }
+
+    const { run_id } = await res.json();
+    setProgress(15, `Job started · run_id: ${run_id}`);
+    pollEval(run_id, 20);
+  } catch (e) {
+    showError('eval-error', e.message);
+    resetEvalBtn();
+  }
+}
+
+function pollEval(runId, pct) {
+  if (_pollTimer) clearTimeout(_pollTimer);
+  _pollTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`${API}/eval/${runId}/status`, { headers: H });
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      const data = await res.json();
+
+      const status = data.status || 'running';
+      const prog = Math.min(pct + 10, 90);
+      setProgress(prog, statusLabel(status, data));
+
+      if (status === 'completed') {
+        setProgress(100, 'Complete!');
+        setTimeout(() => {
+          document.getElementById('eval-progress').style.display = 'none';
+          renderScorecard(data);
+        }, 400);
+        resetEvalBtn();
+      } else if (status === 'failed') {
+        throw new Error(data.error || 'Eval job failed');
+      } else {
+        pollEval(runId, prog);
+      }
+    } catch (e) {
+      showError('eval-error', e.message);
+      resetEvalBtn();
+    }
+  }, 2000);
+}
+
+function statusLabel(status, data) {
+  if (status === 'completed') return '✓ Complete';
+  if (status === 'failed')    return '✗ Failed';
+  const done = data.cases_completed ?? '?';
+  const total = data.total_cases ?? '?';
+  return `Running… ${done}/${total} cases`;
+}
+
+function setProgress(pct, label) {
+  document.getElementById('eval-progress-bar').style.width = pct + '%';
+  document.getElementById('eval-progress-label').textContent = label;
+}
+
+function resetEvalBtn() {
+  const btn = document.getElementById('eval-btn');
+  btn.disabled = false;
+  btn.innerHTML = '▶ Run Evaluation';
+}
+
+function renderScorecard(data) {
+  const results   = data.results   || {};
+  const scorers   = results.scorer_results || {};
+  const aggregate = results.aggregate     || {};
+  const cases     = results.total_cases   ?? data.total_cases ?? '?';
+  const passed    = results.passed_cases  ?? data.cases_completed ?? '?';
+
+  const SCORERS = [
+    { key: 'task_success',   label: 'Task Success',   weight: 0.35 },
+    { key: 'tool_accuracy',  label: 'Tool Accuracy',  weight: 0.25 },
+    { key: 'trajectory',     label: 'Trajectory',     weight: 0.20 },
+    { key: 'hallucination',  label: 'Hallucination',  weight: 0.20 },
+  ];
+
+  const tbody = document.getElementById('score-rows');
+  tbody.innerHTML = '';
+
+  let weightedTotal = 0;
+
+  SCORERS.forEach(({ key, label, weight }) => {
+    const scoreObj = scorers[key] || {};
+    const score = scoreObj.score ?? scoreObj.mean ?? scoreObj.value ?? 0;
+    const pct = Math.round(score * 100);
+    weightedTotal += score * weight;
+
+    const barClass = score >= 0.75 ? '' : score >= 0.5 ? 'mid' : 'low';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${label}</td>
+      <td style="color:var(--muted)">${(weight * 100).toFixed(0)}%</td>
+      <td class="score-num">${pct}%</td>
+      <td class="score-bar-cell">
+        <div class="score-bar-bg">
+          <div class="score-bar-fill ${barClass}" style="width:${pct}%"></div>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Use API aggregate if available, else our calculation
+  const finalScore = aggregate.weighted_score ?? aggregate.score ?? weightedTotal;
+  const finalPct   = Math.round(finalScore * 100);
+
+  const totalTr = document.createElement('tr');
+  totalTr.className = 'total-row';
+  totalTr.innerHTML = `
+    <td>Composite Score</td>
+    <td style="color:var(--muted)">100%</td>
+    <td class="score-num">${finalPct}%</td>
+    <td class="score-bar-cell">
+      <div class="score-bar-bg">
+        <div class="score-bar-fill" style="width:${finalPct}%"></div>
+      </div>
+    </td>
+  `;
+  tbody.appendChild(totalTr);
+
+  document.getElementById('eval-meta-row').innerHTML = `
+    <span>Cases: <strong style="color:var(--text)">${cases}</strong></span>
+    <span>Passed: <strong style="color:var(--green)">${passed}</strong></span>
+    <span>Run ID: <strong style="color:var(--text)">${data.run_id ?? '—'}</strong></span>
+  `;
+
+  document.getElementById('scorecard').classList.add('visible');
+}
+
+// ── Keyboard shortcut: Ctrl+Enter submits query ──────────────────
+document.getElementById('query-input').addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') runQuery();
+});
+</script>
+</body>
+</html>

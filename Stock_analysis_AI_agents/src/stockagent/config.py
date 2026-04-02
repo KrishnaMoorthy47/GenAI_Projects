@@ -1,0 +1,67 @@
+from __future__ import annotations
+
+from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file="../.env", extra="ignore")
+
+    # Application
+    api_key: str
+    port: int = 8005
+
+    # LLM
+    llm_provider: str = "groq"  # "groq" | "openai" | "azure_openai"
+
+    # Groq
+    groq_api_key: str = ""
+    groq_model: str = "llama-3.3-70b-versatile"
+
+    # OpenAI
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4o"
+
+    # Azure OpenAI
+    azure_openai_endpoint: str = ""
+    azure_openai_deployment: str = "gpt-4o"
+    azure_openai_api_key: str = ""
+    azure_openai_api_version: str = "2024-08-01-preview"
+
+    # LangGraph checkpointer (used by finagent's app.config via shared sys.path)
+    tavily_api_key: str = ""
+    use_memory_saver: bool = True
+    database_url: str = ""
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
+
+
+def get_crewai_llm():
+    """Return a CrewAI-compatible LLM instance."""
+    from langchain_groq import ChatGroq
+    from langchain_openai import AzureChatOpenAI, ChatOpenAI
+
+    s = get_settings()
+    if s.llm_provider == "groq":
+        return ChatGroq(
+            model=s.groq_model,
+            api_key=s.groq_api_key,
+            temperature=0.3,
+        )
+    if s.llm_provider == "azure_openai":
+        return AzureChatOpenAI(
+            azure_endpoint=s.azure_openai_endpoint,
+            azure_deployment=s.azure_openai_deployment,
+            openai_api_key=s.azure_openai_api_key,
+            openai_api_version=s.azure_openai_api_version,
+            temperature=0.3,
+        )
+    return ChatOpenAI(
+        model=s.openai_model,
+        api_key=s.openai_api_key,
+        temperature=0.3,
+    )

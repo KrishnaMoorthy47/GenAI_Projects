@@ -1,0 +1,15 @@
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: codesentinel/docker/Dockerfile
+    ports:
+      - "8001:8001"
+    env_file:
+      - ../.env
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+
+volumes:
+  data:

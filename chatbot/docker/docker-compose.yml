@@ -1,0 +1,45 @@
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: chatbot/docker/Dockerfile
+    container_name: chatbot_app
+    ports:
+      - "8002:8002"
+    env_file:
+      - ../.env
+    environment:
+      REDIS_HOST: redis    # Override to use Docker Compose service name
+    volumes:
+      - ../data:/app/data   # Persist FAISS index and input docs across restarts
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - chatbot_network
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: chatbot_redis
+    ports:
+      - "6380:6379"        # Exposed on 6380 to avoid conflict with local Redis
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - chatbot_network
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  chatbot_network:
+    driver: bridge

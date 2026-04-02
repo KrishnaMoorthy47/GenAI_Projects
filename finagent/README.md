@@ -1,0 +1,156 @@
+# FinAgent
+
+AI-powered stock investment research using a **LangGraph multi-agent system** with human-in-the-loop approval. Input a ticker → agents autonomously research the stock → generate a structured investment brief → wait for your approval.
+
+## Architecture
+
+```
+POST /research
+      │
+      ▼
+  supervisor ──► web_research_agent   (Tavily web search)
+      ▲               │
+      │               ▼
+      └──────── supervisor ──► financial_data_agent  (yfinance + SEC EDGAR)
+                    ▲               │
+                    │               ▼
+                    └──────── supervisor ──► sentiment_agent  (LLM earnings analysis)
+                                  ▲               │
+                                  │               ▼
+                                  └──────── supervisor ──► report_writer
+                                                                │
+                                                                ▼
+                                                         human_review  ◄── INTERRUPT
+                                                                │
+                                                         POST /approve
+                                                                │
+                                                               END
+```
+
+**Streaming:** `GET /research/{id}/stream` → Server-Sent Events (token-level + node completion events)
+
+**State persistence:** LangGraph `AsyncPostgresSaver` checkpoints to Postgres — survives restarts.
+
+## Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/research` | Start research for a ticker |
+| `GET` | `/research/{id}/stream` | SSE stream of progress events |
+| `GET` | `/research/{id}/status` | Current status |
+| `POST` | `/research/{id}/approve` | Approve/reject the generated report |
+| `GET` | `/research/{id}/report` | Retrieve the final `InvestmentReport` |
+| `GET` | `/health` | Health check |
+
+## Quick Start
+
+### With Docker (recommended)
+
+```bash
+cp .env.example .env
+# Fill in your API keys in .env
+
+docker compose -f docker/docker-compose.yml up --build
+```
+
+### Local development
+
+```bash
+# Requires Python 3.12 and uv
+uv venv && source .venv/bin/activate
+uv pip install -r requirements.txt
+
+# Start Postgres
+docker compose -f docker/docker-compose.yml up -d postgres
+
+# Run the server
+uvicorn finagent.main:app --reload --port 8000
+```
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `API_KEY` | Yes | `x-api-key` header value for auth |
+| `LLM_PROVIDER` | Yes | `openai` or `azure_openai` |
+| `OPENAI_API_KEY` | If OpenAI | OpenAI API key |
+| `OPENAI_MODEL` | No | Model name (default: `gpt-4o`) |
+| `AZURE_OPENAI_ENDPOINT` | If Azure | Azure OpenAI endpoint URL |
+| `AZURE_OPENAI_DEPLOYMENT` | If Azure | Deployment name |
+| `AZURE_OPENAI_API_KEY` | If Azure | Azure OpenAI key |
+| `AZURE_OPENAI_API_VERSION` | If Azure | API version |
+| `TAVILY_API_KEY` | Yes | [Tavily](https://tavily.com) search API key |
+| `POSTGRES_HOST` | Yes | Postgres host (default: `localhost`) |
+| `POSTGRES_PORT` | No | Postgres port (default: `5432`) |
+| `POSTGRES_DB` | No | Database name (default: `finagent`) |
+| `POSTGRES_USER` | No | DB username (default: `finagent`) |
+| `POSTGRES_PASSWORD` | Yes | DB password |
+
+## Example Usage
+
+```bash
+# 1. Start research
+curl -X POST http://localhost:8000/research \
+  -H "x-api-key: dev-secret" \
+  -H "Content-Type: application/json" \
+  -d '{"ticker": "AAPL"}'
+# → {"thread_id": "abc-123", "status": "started", ...}
+
+# 2. Stream live events
+curl -N http://localhost:8000/research/abc-123/stream \
+  -H "x-api-key: dev-secret"
+
+# 3. Check status (wait for "awaiting_approval")
+curl http://localhost:8000/research/abc-123/status \
+  -H "x-api-key: dev-secret"
+
+# 4. Approve the report
+curl -X POST http://localhost:8000/research/abc-123/approve \
+  -H "x-api-key: dev-secret" \
+  -H "Content-Type: application/json" \
+  -d '{"approved": true}'
+
+# 5. Get the final report
+curl http://localhost:8000/research/abc-123/report \
+  -H "x-api-key: dev-secret"
+```
+
+## Example Report Output
+
+```json
+{
+  "ticker": "AAPL",
+  "company_name": "Apple Inc.",
+  "recommendation": "BUY",
+  "confidence_score": 78,
+  "target_price_12m": 210.0,
+  "current_price": 175.0,
+  "upside_downside_pct": 20.0,
+  "executive_summary": "Apple maintains dominant market position with strong services growth...",
+  "investment_thesis": "1. Services segment growing at 15% YoY...\n2. iPhone upgrade cycle...",
+  "financial_highlights": "Revenue TTM: $385B, P/E: 28.5, Free Cash Flow: $102B...",
+  "risks": "China market exposure, regulatory scrutiny, AI investment requirements...",
+  "sentiment_summary": "Analyst consensus: Bullish (72% Buy). Institutional ownership stable...",
+  "data_sources": ["yfinance", "SEC EDGAR", "Tavily web search"],
+  "disclaimer": "This report is generated by an AI system for informational purposes only..."
+}
+```
+
+## Running Tests
+
+```bash
+uv run pytest tests/ -v
+```
+
+## Tech Stack
+
+- **[LangGraph](https://github.com/langchain-ai/langgraph)** — Multi-agent orchestration with interrupt/resume
+- **[FastAPI](https://fastapi.tiangolo.com)** — Async REST API + SSE streaming
+- **[yfinance](https://github.com/ranaroussi/yfinance)** — Stock data
+- **[SEC EDGAR API](https://www.sec.gov/developer)** — Free public filings data
+- **[Tavily](https://tavily.com)** — Web search optimized for AI agents
+- **[Psycopg 3](https://www.psycopg.org/psycopg3/)** — Postgres async driver for checkpointing
+
+## Disclaimer
+
+This tool is for educational and portfolio demonstration purposes. It does not constitute financial advice.
