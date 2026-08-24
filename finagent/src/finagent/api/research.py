@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import secrets
 import uuid
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
@@ -12,6 +13,8 @@ from finagent.agents.graph import build_graph
 from finagent.config import get_settings
 from finagent.models.request import ApprovalRequest, ResearchRequest
 from finagent.models.response import InvestmentReport, ResearchResponse, StatusResponse
+from finagent.security.audit_log import log_research_request
+from finagent.security.prompt_guard import scan_for_injection
 from finagent.services.checkpointer import get_checkpointer
 from finagent.services.streaming import (
     create_stream_queue,
@@ -27,7 +30,13 @@ router = APIRouter(prefix="/research", tags=["research"])
 
 def verify_api_key(x_api_key: str = Header(...)):
     settings = get_settings()
-    if x_api_key != settings.api_key:
+    try:
+        # secrets.compare_digest raises ValueError/TypeError on non-ASCII str
+        # inputs — treat that as an invalid key rather than a 500.
+        valid = secrets.compare_digest(x_api_key, settings.api_key)
+    except (TypeError, ValueError):
+        valid = False
+    if not valid:
         raise HTTPException(status_code=401, detail="Invalid API key")
     return x_api_key
 
@@ -37,8 +46,36 @@ async def start_research(
     body: ResearchRequest,
     _: str = Depends(verify_api_key),
 ):
-    """Start an autonomous research session for a stock ticker."""
+    """Start an autonomous research session for a stock ticker.
+
+    ``body.query`` is free text that flows unsanitized into the LLM prompt in
+    ``web_research_node``/``sentiment_node``, so it's scanned for prompt-injection
+    attempts before any graph work starts. Every request is audit-logged
+    regardless of outcome; flagged requests are rejected outright rather than
+    silently proceeding.
+    """
     thread_id = str(uuid.uuid4())
+
+    guard_result = scan_for_injection(body.query)
+    log_research_request(
+        thread_id=thread_id,
+        ticker=body.ticker,
+        query_length=len(body.query),
+        guard_flagged=guard_result.flagged,
+        guard_reason=guard_result.reason,
+    )
+    if guard_result.flagged:
+        logger.warning(
+            "Blocked research request: thread_id=%s ticker=%s reason=%s",
+            thread_id,
+            body.ticker,
+            guard_result.reason,
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="Query rejected: contains content resembling a prompt-injection attempt.",
+        )
+
     checkpointer = get_checkpointer()
     graph = build_graph(checkpointer)
 

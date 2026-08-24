@@ -7,6 +7,7 @@ from langgraph.types import Command
 
 from finagent.agents.state import FinAgentState
 from finagent.config import get_llm
+from finagent.security.content_framing import wrap_untrusted_web_content
 from finagent.tools.web_search import web_search
 
 logger = logging.getLogger(__name__)
@@ -45,7 +46,7 @@ def web_research_node(state: FinAgentState) -> Command:
             tool_result = web_search.invoke(tool_call["args"])
             messages.append(
                 ToolMessage(
-                    content=str(tool_result),
+                    content=wrap_untrusted_web_content(str(tool_result)),
                     name="web_search",
                     tool_call_id=tool_call["id"],
                 )

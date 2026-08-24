@@ -19,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from rate_limit import RateLimitMiddleware
 from finagent.api.health import router as health_router
 from finagent.api.research import router as research_router
+from finagent.config import get_settings
 from finagent.services.checkpointer import close_checkpointer, init_checkpointer
 
 # LangChain sets AIMessage.parsed to a Pydantic model instance after structured output,
@@ -60,10 +61,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_cors_origins = get_settings().cors_allowed_origins_list
+if _cors_origins == ["*"]:
+    logger.warning(
+        "CORS_ALLOWED_ORIGINS not set — allowing all origins (*). "
+        "Set it to a comma-separated allowlist for non-local deployments."
+    )
+
 app.add_middleware(RateLimitMiddleware, max_requests=20, window=60)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

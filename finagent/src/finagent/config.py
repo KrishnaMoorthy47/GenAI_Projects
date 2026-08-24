@@ -41,6 +41,15 @@ class Settings(BaseSettings):
     # Local testing
     use_memory_saver: bool = False
 
+    # CORS — comma-separated origin list, e.g. "https://app.example.com,https://admin.example.com"
+    cors_allowed_origins: str = "*"
+
+    @property
+    def cors_allowed_origins_list(self) -> list[str]:
+        if self.cors_allowed_origins.strip() == "*":
+            return ["*"]
+        return [origin.strip() for origin in self.cors_allowed_origins.split(",") if origin.strip()]
+
 
 @lru_cache
 def get_settings() -> Settings:
