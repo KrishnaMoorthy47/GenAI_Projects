@@ -1,4 +1,3 @@
-# Copyright (c) 2024 ValGenesis Inc. All rights reserved.
 """Pydantic models for the VoiceAgent API."""
 
 from __future__ import annotations

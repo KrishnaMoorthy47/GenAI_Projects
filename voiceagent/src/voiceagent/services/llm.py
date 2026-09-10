@@ -1,5 +1,4 @@
-# Copyright (c) 2024 ValGenesis Inc. All rights reserved.
-"""LLM generation via Groq (llama-3.1-8b-instant) with sentence-level streaming."""
+"""LLM generation via Groq (openai/gpt-oss-20b) with sentence-level streaming."""
 
 from __future__ import annotations
 

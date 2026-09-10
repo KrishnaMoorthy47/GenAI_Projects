@@ -1,4 +1,3 @@
-# Copyright (c) 2024 ValGenesis Inc. All rights reserved.
 """Text-to-speech via OpenAI TTS API."""
 
 from __future__ import annotations

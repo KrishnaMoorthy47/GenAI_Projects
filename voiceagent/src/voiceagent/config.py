@@ -1,4 +1,3 @@
-# Copyright (c) 2024 ValGenesis Inc. All rights reserved.
 """VoiceAgent configuration via Pydantic Settings."""
 
 from __future__ import annotations
@@ -20,9 +19,10 @@ class Settings(BaseSettings):
     tts_voice: str = "alloy"
     tts_model: str = "tts-1"
 
-    # Groq (LLM)
+    # Groq (LLM) — llama-3.1-8b-instant was retired (Aug 2026); openai/gpt-oss-20b
+    # is Groq's own migration recommendation, same fix applied in chatbot.
     groq_api_key: str = ""
-    groq_model: str = "llama-3.1-8b-instant"
+    groq_model: str = "openai/gpt-oss-20b"
 
 
 @lru_cache

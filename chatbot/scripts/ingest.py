@@ -18,6 +18,13 @@ import logging
 import sys
 import os
 
+# Windows consoles default to a legacy codepage (cp1252) that can't encode
+# the ✓/✗ symbols below — force UTF-8 so this runs the same on Windows,
+# macOS, Linux, and inside Docker either way.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+
 # Allow running from project root without installing the package
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 

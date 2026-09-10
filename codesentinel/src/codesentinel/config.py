@@ -17,9 +17,10 @@ class Settings(BaseSettings):
     # LLM
     llm_provider: str = "groq"  # "groq" | "openai" | "azure_openai"
 
-    # Groq
+    # Groq — llama-3.1-8b-instant was retired (Aug 2026); openai/gpt-oss-20b
+    # is Groq's own migration recommendation, same fix applied in chatbot.
     groq_api_key: str = ""
-    groq_model: str = "llama-3.1-8b-instant"
+    groq_model: str = "openai/gpt-oss-20b"
 
     # OpenAI
     openai_api_key: str = ""

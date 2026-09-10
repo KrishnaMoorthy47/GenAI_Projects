@@ -11,9 +11,10 @@ from chatbot.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-# Separate clients: chat can be Groq/Ollama/OpenAI; embed is always OpenAI
+# Separate clients: chat can be Groq/Ollama/OpenAI; embed is OpenAI or local
 _chat_client: OpenAI | None = None
 _embed_client: OpenAI | None = None
+_local_embedder = None  # sentence_transformers.SentenceTransformer, lazy-loaded
 
 
 def _get_chat_client() -> OpenAI:
@@ -42,7 +43,7 @@ def _get_chat_client() -> OpenAI:
 
 
 def _get_embed_client() -> OpenAI:
-    """Always OpenAI — Groq does not provide an embeddings API."""
+    """OpenAI embeddings client — only used when embedding_provider='openai'."""
     global _embed_client
     if _embed_client is None:
         settings = get_settings()
@@ -50,19 +51,38 @@ def _get_embed_client() -> OpenAI:
     return _embed_client
 
 
+def _get_local_embedder():
+    """Lazy-load a local sentence-transformers model — no API key, runs on CPU."""
+    global _local_embedder
+    if _local_embedder is None:
+        settings = get_settings()
+        from sentence_transformers import SentenceTransformer
+
+        logger.info("Loading local embedding model: %s", settings.local_embedding_model)
+        _local_embedder = SentenceTransformer(settings.local_embedding_model)
+    return _local_embedder
+
+
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=8), reraise=True)
 def embed_query(text: str) -> List[float]:
     """Embed a single text string into a float vector."""
     settings = get_settings()
+    if settings.embedding_provider == "local":
+        embedder = _get_local_embedder()
+        return embedder.encode(text, normalize_embeddings=False).tolist()
     client = _get_embed_client()
-    model = settings.embedding_model  # always text-embedding-3-small via OpenAI
-    response = client.embeddings.create(model=model, input=text)
+    response = client.embeddings.create(model=settings.embedding_model, input=text)
     return response.data[0].embedding
 
 
 def embed_texts(texts: List[str], batch_size: int = 100) -> List[List[float]]:
     """Embed a list of texts in batches of batch_size."""
     settings = get_settings()
+    if settings.embedding_provider == "local":
+        embedder = _get_local_embedder()
+        logger.info("Embedding %d texts locally (sentence-transformers)...", len(texts))
+        return embedder.encode(texts, normalize_embeddings=False).tolist()
+
     all_embeddings: List[List[float]] = []
     for i in range(0, len(texts), batch_size):
         batch = texts[i : i + batch_size]

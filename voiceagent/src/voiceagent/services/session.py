@@ -1,4 +1,3 @@
-# Copyright (c) 2024 ValGenesis Inc. All rights reserved.
 """In-memory session and conversation history store."""
 
 from __future__ import annotations

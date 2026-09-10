@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 
 from chatbot.adapters import llm_adapter
 from chatbot.config import get_settings
@@ -8,6 +9,20 @@ from chatbot.models.schemas import QueryRequest, QueryResponse, SourceDocument
 from chatbot.services.query_service import RAGResult, sanitize_query, run_rag_pipeline
 
 logger = logging.getLogger(__name__)
+
+# Safety net, independent of the system-prompt instruction and of whatever
+# ends up ingested — a phone number should never leave this service, full
+# stop. Matches +country-code and grouped-digit formats (e.g. "+971 566
+# 221863", "+91 7502449411", "566-221-863").
+_PHONE_PATTERN = re.compile(r"(\+?\d[\d\-\s()]{7,}\d)")
+
+
+def _redact_phone_numbers(text: str) -> str:
+    def _replace(match: "re.Match[str]") -> str:
+        digits = re.sub(r"\D", "", match.group(0))
+        return match.group(0) if len(digits) < 8 else "[redacted]"
+
+    return _PHONE_PATTERN.sub(_replace, text)
 
 
 def process_query(request: QueryRequest) -> QueryResponse:
@@ -56,7 +71,7 @@ def process_query(request: QueryRequest) -> QueryResponse:
     ]
 
     return QueryResponse(
-        answer=result.answer,
+        answer=_redact_phone_numbers(result.answer),
         session_id=request.session_id,
         sources=sources,
         has_context=result.has_context,

@@ -34,7 +34,9 @@ def _extract_sync(raw_text: str) -> ExtractionResult:
     llm = get_llm(temperature=0.0)
 
     # Extract header
-    header_llm = llm.with_structured_output(Header)
+    # method="json_schema" — default "function_calling" fails against
+    # openai/gpt-oss-20b on Groq (tool-call validation error).
+    header_llm = llm.with_structured_output(Header, method="json_schema")
     header_chain = _PROMPT | header_llm
     header = _invoke_chain(header_chain, {"text": raw_text})
 
@@ -45,7 +47,7 @@ def _extract_sync(raw_text: str) -> ExtractionResult:
     class LineItemList(BaseModel):
         items: List[ProductLineItem]
 
-    items_llm = llm.with_structured_output(LineItemList)
+    items_llm = llm.with_structured_output(LineItemList, method="json_schema")
     items_chain = _PROMPT | items_llm
     items_result = _invoke_chain(items_chain, {
         "text": (

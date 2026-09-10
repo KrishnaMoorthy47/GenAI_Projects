@@ -43,7 +43,9 @@ async def score_task_success(
         return 0.0, "No answer produced."
 
     llm = llm or get_llm(temperature=0.0)
-    judge = llm.with_structured_output(JudgeResult)
+    # method="json_schema" — default "function_calling" fails against
+    # openai/gpt-oss-20b on Groq (tool-call validation error).
+    judge = llm.with_structured_output(JudgeResult, method="json_schema")
     prompt = TASK_SUCCESS_PROMPT.format(
         question=question,
         expected_answer=expected_answer,

@@ -111,7 +111,7 @@ voiceagent/
 | `TTS_VOICE` | `alloy` | OpenAI TTS voice |
 | `TTS_MODEL` | `tts-1` | OpenAI TTS model |
 | `GROQ_API_KEY` | — | LLM streaming |
-| `GROQ_MODEL` | `llama-3.1-8b-instant` | Groq model |
+| `GROQ_MODEL` | `openai/gpt-oss-20b` | Groq model |
 | `PORT` | `8004` | Server port |
 
 ---

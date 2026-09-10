@@ -51,7 +51,9 @@ async def score_hallucination(
         return 0.5, "No SQL result available to verify against."
 
     llm = llm or get_llm(temperature=0.0)
-    judge = llm.with_structured_output(JudgeResult)
+    # method="json_schema" — default "function_calling" fails against
+    # openai/gpt-oss-20b on Groq (tool-call validation error).
+    judge = llm.with_structured_output(JudgeResult, method="json_schema")
     prompt = HALLUCINATION_PROMPT.format(
         sql_result=sql_result,
         actual_answer=actual_answer,

@@ -23,7 +23,11 @@ def report_writer_node(state: FinAgentState) -> Command:
     logger.info("report_writer_node: generating report for %s", state["ticker"])
 
     llm = get_llm()
-    structured_llm = llm.with_structured_output(InvestmentReport)
+    # method="json_schema" — the default "function_calling" fails against
+    # openai/gpt-oss-20b on Groq (tool-call validation error); json_schema
+    # is Groq's dedicated structured-output path for this model, and the
+    # same method OpenAI/Azure recommend for their newer models too.
+    structured_llm = llm.with_structured_output(InvestmentReport, method="json_schema")
 
     context_parts = [f"Ticker: {state['ticker']}"]
     if state.get("web_research"):

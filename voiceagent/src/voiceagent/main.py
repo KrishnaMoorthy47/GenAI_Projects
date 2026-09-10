@@ -1,4 +1,3 @@
-# Copyright (c) 2024 ValGenesis Inc. All rights reserved.
 """VoiceAgent — Real-time voice AI agent.
 
 WebSocket flow:

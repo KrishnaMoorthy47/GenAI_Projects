@@ -10,9 +10,10 @@ build/
 .pytest_cache/
 .coverage
 htmlcov/
-data/indexed/*/
-!data/indexed/.gitkeep
-data/input/*
-!data/input/.gitkeep
+
+# The "default" collection is the live portfolio demo's content (Krishna's
+# resume + project details) — it ships baked into the Docker image (see
+# docker/Dockerfile), so unlike other local/test collections it's committed
+# on purpose rather than gitignored.
 *.db
 *.sqlite

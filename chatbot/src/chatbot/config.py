@@ -24,14 +24,20 @@ class Settings(BaseSettings):
     llm_max_tokens: int = 1500
     llm_temperature: float = 0.2
 
-    # Groq
+    # Groq — llama-3.1-8b-instant was retired from Groq's catalog; verified
+    # against GET /openai/v1/models that this one is currently live.
     groq_api_key: str = ""
-    groq_model: str = "llama-3.1-8b-instant"
+    groq_model: str = "openai/gpt-oss-20b"
 
-    # OpenAI (also used for embeddings regardless of llm_provider)
+    # OpenAI (used for embeddings when embedding_provider="openai")
     openai_api_key: str = ""
     embedding_model: str = "text-embedding-3-small"
     embedding_dimensions: int = 1536
+
+    # Embeddings — "openai" (needs OPENAI_API_KEY) or "local" (runs on CPU,
+    # no key needed at all — sentence-transformers, cached in the image)
+    embedding_provider: str = "openai"
+    local_embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
 
     # Ollama
     ollama_base_url: str = "http://localhost:11434"

@@ -1,4 +1,3 @@
-# Copyright (c) 2024 ValGenesis Inc. All rights reserved.
 """Speech-to-text via OpenAI Whisper API."""
 
 from __future__ import annotations
