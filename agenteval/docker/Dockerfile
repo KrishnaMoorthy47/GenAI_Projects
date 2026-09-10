@@ -11,6 +11,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY agenteval/src/ ./src/
 COPY agenteval/data/ ./data/
+COPY agenteval/datasets/ ./datasets/
 COPY rate_limit.py .
 
 RUN useradd -m -u 1000 agenteval && chown -R agenteval:agenteval /app
