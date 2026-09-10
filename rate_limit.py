@@ -47,7 +47,17 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if path in self._exempt:
             return await call_next(request)
 
-        ip = request.client.host if request.client else "unknown"
+        # Behind Render's (or any) reverse proxy, request.client.host is the
+        # proxy's own rotating internal IP, not the real visitor — that
+        # silently defeats per-client rate limiting. X-Forwarded-For's first
+        # entry is the original client IP; only trust it because Render's
+        # edge sets it itself, not because a client-supplied header is safe
+        # to trust in general.
+        forwarded_for = request.headers.get("x-forwarded-for")
+        if forwarded_for:
+            ip = forwarded_for.split(",")[0].strip()
+        else:
+            ip = request.client.host if request.client else "unknown"
         now = time.time()
 
         # Evict timestamps that have fallen outside the current window
