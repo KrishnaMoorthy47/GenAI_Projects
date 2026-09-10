@@ -268,15 +268,11 @@
 <body>
 <div class="container">
   <h1>🎙️ VoiceAgent</h1>
-  <p class="subtitle">Real-time voice AI: speak → Whisper STT → Groq LLM → OpenAI TTS</p>
+  <p class="subtitle">Real-time voice AI: speak → Groq Whisper STT → Groq LLM → Groq Orpheus TTS</p>
 
   <!-- Config -->
   <div class="card">
     <div class="card-label">Connection</div>
-    <div class="input-row">
-      <input type="text" id="server-url" placeholder="ws://localhost:8003" value="ws://localhost:8003" />
-      <input type="password" id="api-key" placeholder="x-api-key" value="dev-secret" style="max-width:140px" />
-    </div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-primary" id="connect-btn" onclick="connect()">Connect</button>
       <button class="btn btn-danger" id="disconnect-btn" onclick="disconnect()" disabled>Disconnect</button>
@@ -290,9 +286,9 @@
     <div class="card-label">Voice Turn</div>
 
     <div class="pipeline">
-      <span class="step" id="step-stt"><span class="dot"></span>Whisper STT</span>
+      <span class="step" id="step-stt"><span class="dot"></span>Groq Whisper</span>
       <span class="step" id="step-llm"><span class="dot"></span>Groq LLM</span>
-      <span class="step" id="step-tts"><span class="dot"></span>OpenAI TTS</span>
+      <span class="step" id="step-tts"><span class="dot"></span>Groq Orpheus TTS</span>
     </div>
 
     <div class="mic-row">
@@ -331,20 +327,12 @@ let playQueue = Promise.resolve();
 
 /* ── Connect / Session ────────────────────────────────────────── */
 async function connect() {
-  const baseUrl = document.getElementById('server-url').value.trim().replace(/\/$/, '');
-  const apiKey  = document.getElementById('api-key').value.trim();
-
-  if (!baseUrl) { showError('Enter a server URL.'); return; }
-
   hideError();
 
-  // Create session via REST
-  const httpBase = baseUrl.replace(/^ws/, 'http');
+  // Same-origin, unauthenticated mirror route (see main.py) — the real
+  // x-api-key-protected endpoint never needs to be reachable from here.
   try {
-    const res = await fetch(httpBase + '/api/v1/session', {
-      method: 'POST',
-      headers: { 'x-api-key': apiKey }
-    });
+    const res = await fetch(window.location.origin + '/demo/session', { method: 'POST' });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || 'HTTP ' + res.status);
@@ -356,8 +344,9 @@ async function connect() {
     return;
   }
 
-  // Open WebSocket
-  const wsUrl = baseUrl + '/ws/voice/' + sessionId;
+  // Open WebSocket — same origin, ws/wss inferred from the page's own protocol
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = wsProtocol + '//' + window.location.host + '/ws/voice/' + sessionId;
   ws = new WebSocket(wsUrl);
 
   ws.onopen = () => {
@@ -385,12 +374,8 @@ async function connect() {
 async function disconnect() {
   if (ws) { ws.close(); ws = null; }
   if (sessionId) {
-    const httpBase = document.getElementById('server-url').value.trim()
-      .replace(/\/$/, '').replace(/^ws/, 'http');
-    const apiKey = document.getElementById('api-key').value.trim();
-    await fetch(httpBase + '/api/v1/session/' + sessionId, {
-      method: 'DELETE',
-      headers: { 'x-api-key': apiKey }
+    await fetch(window.location.origin + '/demo/session/' + sessionId, {
+      method: 'DELETE'
     }).catch(() => {});
     sessionId = null;
   }

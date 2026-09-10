@@ -111,6 +111,8 @@ def create_app() -> FastAPI:
     static_dir = Path(__file__).parent / "static"
     static_dir.mkdir(exist_ok=True)
     app.mount("/ui", StaticFiles(directory=static_dir, html=True), name="ui")
+    app.include_router(agent_routes.router, prefix="/demo", include_in_schema=False)
+    app.include_router(eval_routes.router, prefix="/demo", include_in_schema=False)
 
     @app.get("/", include_in_schema=False)
     async def root_redirect():

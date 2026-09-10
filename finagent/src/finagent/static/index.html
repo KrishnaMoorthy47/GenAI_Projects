@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FinAgent — Interactive Demo</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #0d1117;
+    --surface: #161b22;
+    --surface2:#1c2430;
+    --border:  #30363d;
+    --text:    #e6edf3;
+    --muted:   #8b949e;
+    --green:   #3fb950;
+    --blue:    #58a6ff;
+    --red:     #f85149;
+    --yellow:  #d29922;
+    --purple:  #bc8cff;
+    --font:    'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 64px;
+  }
+
+  header { text-align: center; margin-bottom: 32px; }
+  header h1 { font-size: 24px; font-weight: 700; color: var(--green); letter-spacing: -0.5px; }
+  header p { color: var(--muted); font-size: 13px; margin-top: 6px; }
+  header .badge {
+    display: inline-block; margin-top: 10px; padding: 3px 10px;
+    border: 1px solid var(--green); border-radius: 20px; font-size: 11px; color: var(--green);
+  }
+
+  .card {
+    width: 100%; max-width: 820px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; padding: 28px; margin-top: 20px;
+  }
+
+  label {
+    display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px;
+    text-transform: uppercase; letter-spacing: 0.6px;
+  }
+
+  input[type="text"], textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-family: var(--font); font-size: 13px;
+    padding: 12px 14px; outline: none; transition: border-color 0.15s;
+  }
+  input[type="text"]:focus, textarea:focus { border-color: var(--blue); }
+  textarea { min-height: 64px; resize: vertical; }
+
+  .form-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-top: 14px; }
+  .form-row > div { flex: 1; min-width: 160px; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;
+    border-radius: 8px; border: none; font-family: var(--font); font-size: 13px;
+    font-weight: 600; cursor: pointer; transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: var(--blue); color: #0d1117; }
+  .btn-green   { background: var(--green); color: #0d1117; }
+  .btn-red     { background: var(--red); color: #0d1117; }
+
+  .error-banner {
+    display: none; background: rgba(248,81,73,0.12); border: 1px solid var(--red);
+    border-radius: 8px; padding: 12px 16px; color: var(--red); font-size: 13px; margin-top: 16px;
+  }
+  .error-banner.visible { display: block; }
+
+  /* Pipeline */
+  .pipeline {
+    display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px;
+  }
+  .pipe-step {
+    display: flex; align-items: center; gap: 8px; padding: 8px 14px;
+    border: 1px solid var(--border); border-radius: 20px; font-size: 12px; color: var(--muted);
+    background: var(--surface2);
+  }
+  .pipe-step .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
+  .pipe-step.active { color: var(--blue); border-color: var(--blue); }
+  .pipe-step.active .dot { background: var(--blue); animation: pulse 1s ease-in-out infinite; }
+  .pipe-step.done { color: var(--green); border-color: var(--green); }
+  .pipe-step.done .dot { background: var(--green); }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  .progress-note { margin-top: 14px; font-size: 12px; color: var(--muted); }
+
+  /* Report */
+  .report { margin-top: 24px; display: none; }
+  .report.visible { display: block; }
+
+  .rec-header { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+  .rec-badge {
+    font-size: 13px; font-weight: 700; padding: 6px 16px; border-radius: 20px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .rec-badge.buy { background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid var(--green); }
+  .rec-badge.speculative_buy { background: rgba(63,185,80,0.1); color: var(--green); border: 1px solid var(--green); }
+  .rec-badge.hold { background: rgba(210,153,34,0.15); color: var(--yellow); border: 1px solid var(--yellow); }
+  .rec-badge.sell { background: rgba(248,81,73,0.15); color: var(--red); border: 1px solid var(--red); }
+  .rec-meta { font-size: 12px; color: var(--muted); }
+  .rec-meta strong { color: var(--text); }
+
+  .price-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .price-chip {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 16px; min-width: 120px;
+  }
+  .price-chip .label { font-size: 10px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px; }
+  .price-chip .value { font-size: 16px; font-weight: 700; margin-top: 4px; }
+  .price-chip .value.up { color: var(--green); }
+  .price-chip .value.down { color: var(--red); }
+
+  .section { margin-bottom: 18px; }
+  .section h3 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin-bottom: 8px;
+  }
+  .section p, .section div.body {
+    font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: break-word;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 14px;
+  }
+
+  .sources { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sources span {
+    font-size: 11px; color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px;
+  }
+
+  .disclaimer { font-size: 11px; color: var(--muted); margin-top: 16px; font-style: italic; }
+
+  .approval-box {
+    display: none; margin-top: 20px; padding: 18px; border: 1px solid var(--yellow);
+    background: rgba(210,153,34,0.08); border-radius: 10px;
+  }
+  .approval-box.visible { display: block; }
+  .approval-box h3 { font-size: 12px; color: var(--yellow); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+  .approval-box .actions { display: flex; gap: 10px; margin-top: 14px; }
+
+  .decision-note {
+    display: none; margin-top: 16px; padding: 12px 16px; border-radius: 8px; font-size: 13px;
+  }
+  .decision-note.visible { display: block; }
+  .decision-note.approved { background: rgba(63,185,80,0.1); border: 1px solid var(--green); color: var(--green); }
+  .decision-note.rejected { background: rgba(248,81,73,0.1); border: 1px solid var(--red); color: var(--red); }
+
+  .spinner {
+    display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border);
+    border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  footer { margin-top: 40px; text-align: center; font-size: 11px; color: var(--muted); }
+  footer a { color: var(--blue); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📈 FinAgent</h1>
+  <p>Multi-agent stock research with a human-in-the-loop approval gate</p>
+  <div class="badge">live demo</div>
+</header>
+
+<div class="card">
+  <label for="ticker-input">Stock ticker</label>
+  <div class="form-row">
+    <div style="flex:0 1 160px">
+      <input type="text" id="ticker-input" placeholder="e.g. AAPL" maxlength="10" />
+    </div>
+    <button class="btn btn-primary" id="start-btn" onclick="startResearch()">
+      <span id="start-label">▶ Start Research</span>
+    </button>
+  </div>
+  <div class="error-banner" id="error-banner"></div>
+</div>
+
+<div class="card" id="pipeline-card" style="display:none">
+  <label>Pipeline</label>
+  <div class="pipeline" id="pipeline">
+    <div class="pipe-step" data-step="supervisor"><span class="dot"></span>Supervisor</div>
+    <div class="pipe-step" data-step="web_research_agent"><span class="dot"></span>Web Research</div>
+    <div class="pipe-step" data-step="financial_data_agent"><span class="dot"></span>Financial Data</div>
+    <div class="pipe-step" data-step="sentiment_agent"><span class="dot"></span>Sentiment</div>
+    <div class="pipe-step" data-step="report_writer"><span class="dot"></span>Report Writer</div>
+    <div class="pipe-step" data-step="human_review"><span class="dot"></span>Human Review</div>
+  </div>
+  <div class="progress-note" id="progress-note">Starting…</div>
+
+  <div class="approval-box" id="approval-box">
+    <h3>⏸ Awaiting your approval</h3>
+    <p style="font-size:13px;line-height:1.6" id="approval-summary"></p>
+    <div class="actions">
+      <button class="btn btn-green" id="approve-btn" onclick="decide(true)">✓ Approve</button>
+      <button class="btn btn-red" id="reject-btn" onclick="decide(false)">✗ Reject</button>
+    </div>
+  </div>
+
+  <div class="decision-note" id="decision-note"></div>
+</div>
+
+<div class="report" id="report">
+  <div class="card">
+    <div class="rec-header">
+      <span class="rec-badge" id="rec-badge"></span>
+      <span class="rec-meta" id="rec-meta"></span>
+    </div>
+
+    <div class="price-row" id="price-row"></div>
+
+    <div class="section">
+      <h3>Executive Summary</h3>
+      <p id="rep-summary"></p>
+    </div>
+    <div class="section">
+      <h3>Investment Thesis</h3>
+      <p id="rep-thesis"></p>
+    </div>
+    <div class="section">
+      <h3>Financial Highlights</h3>
+      <p id="rep-financials"></p>
+    </div>
+    <div class="section">
+      <h3>Risks</h3>
+      <p id="rep-risks"></p>
+    </div>
+    <div class="section">
+      <h3>Sentiment</h3>
+      <p id="rep-sentiment"></p>
+    </div>
+    <div class="section">
+      <h3>Data Sources</h3>
+      <div class="sources" id="rep-sources"></div>
+    </div>
+
+    <div class="disclaimer" id="rep-disclaimer"></div>
+  </div>
+</div>
+
+<footer>
+  <a href="/docs" target="_blank">Swagger /docs</a> &nbsp;·&nbsp;
+  <a href="/health" target="_blank">/health</a> &nbsp;·&nbsp;
+  FinAgent v1.0
+</footer>
+
+<script>
+// Same-origin, unauthenticated mirror routes (see main.py / research.py) —
+// the real x-api-key-protected API never needs to be reachable from here.
+const API = window.location.origin + '/demo';
+const H   = { 'Content-Type': 'application/json' };
+const POLL_INTERVAL_MS = 3000;
+
+let threadId = null;
+let _pollTimer = null;
+let _lastStep = null;
+
+function showError(msg) {
+  const el = document.getElementById('error-banner');
+  el.textContent = '⚠ ' + msg;
+  el.classList.add('visible');
+}
+function hideError() {
+  document.getElementById('error-banner').classList.remove('visible');
+}
+
+async function startResearch() {
+  const ticker = document.getElementById('ticker-input').value.trim().toUpperCase();
+  if (!ticker) { showError('Enter a ticker symbol.'); return; }
+
+  hideError();
+  resetUI();
+
+  const btn = document.getElementById('start-btn');
+  const label = document.getElementById('start-label');
+  btn.disabled = true;
+  label.innerHTML = '<span class="spinner"></span> Starting…';
+
+  try {
+    const res = await fetch(`${API}/research`, {
+      method: 'POST',
+      headers: H,
+      body: JSON.stringify({ ticker })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || res.statusText);
+    }
+    const data = await res.json();
+    threadId = data.thread_id;
+
+    document.getElementById('pipeline-card').style.display = 'block';
+    setStep('supervisor', 'active');
+    document.getElementById('progress-note').textContent = 'Research started · thread ' + threadId.slice(0, 8) + '…';
+    pollStatus();
+  } catch (e) {
+    showError(e.message);
+  } finally {
+    btn.disabled = false;
+    label.textContent = '▶ Start Research';
+  }
+}
+
+function resetUI() {
+  threadId = null;
+  _lastStep = null;
+  if (_pollTimer) clearTimeout(_pollTimer);
+  document.querySelectorAll('.pipe-step').forEach(el => el.classList.remove('active', 'done'));
+  document.getElementById('approval-box').classList.remove('visible');
+  document.getElementById('decision-note').classList.remove('visible');
+  document.getElementById('report').classList.remove('visible');
+}
+
+const STEP_ORDER = ['supervisor', 'web_research_agent', 'financial_data_agent', 'sentiment_agent', 'report_writer', 'human_review'];
+
+function setStep(step, state) {
+  const idx = STEP_ORDER.indexOf(step);
+  STEP_ORDER.forEach((s, i) => {
+    const el = document.querySelector(`.pipe-step[data-step="${s}"]`);
+    el.classList.remove('active', 'done');
+    if (i < idx || (i === idx && state === 'done')) el.classList.add('done');
+    else if (i === idx) el.classList.add(state);
+  });
+}
+
+function pollStatus() {
+  if (_pollTimer) clearTimeout(_pollTimer);
+  _pollTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`${API}/research/${threadId}/status`, { headers: H });
+
+      if (res.status === 429) {
+        const retryAfter = Number(res.headers.get('Retry-After')) || 5;
+        document.getElementById('progress-note').textContent = `Rate limited — retrying in ${retryAfter}s…`;
+        _pollTimer = setTimeout(pollStatus, retryAfter * 1000);
+        return;
+      }
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      const data = await res.json();
+
+      const step = data.current_step || 'supervisor';
+      if (step !== _lastStep) {
+        setStep(step, 'active');
+        _lastStep = step;
+      }
+
+      if (data.status === 'awaiting_approval') {
+        setStep('human_review', 'active');
+        document.getElementById('progress-note').textContent = 'Report drafted — awaiting your review.';
+        await loadReportPreview();
+      } else if (data.status === 'completed' || data.status === 'rejected') {
+        document.getElementById('progress-note').textContent = 'Done.';
+      } else if (data.status === 'failed') {
+        throw new Error('Research failed.');
+      } else {
+        document.getElementById('progress-note').textContent = `Running… (${step.replace(/_/g, ' ')})`;
+        pollStatus();
+      }
+    } catch (e) {
+      showError(e.message);
+    }
+  }, POLL_INTERVAL_MS);
+}
+
+async function loadReportPreview() {
+  try {
+    const res = await fetch(`${API}/research/${threadId}/report`, { headers: H });
+    if (!res.ok) throw new Error(`Report ${res.status}`);
+    const report = await res.json();
+    document.getElementById('approval-summary').textContent =
+      `${report.recommendation} — ${report.executive_summary}`;
+    document.getElementById('approval-box').classList.add('visible');
+    window._pendingReport = report;
+  } catch (e) {
+    showError(e.message);
+  }
+}
+
+async function decide(approved) {
+  document.getElementById('approve-btn').disabled = true;
+  document.getElementById('reject-btn').disabled = true;
+
+  try {
+    const res = await fetch(`${API}/research/${threadId}/approve`, {
+      method: 'POST',
+      headers: H,
+      body: JSON.stringify({ approved })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || res.statusText);
+    }
+
+    document.getElementById('approval-box').classList.remove('visible');
+    const note = document.getElementById('decision-note');
+    note.className = 'decision-note visible ' + (approved ? 'approved' : 'rejected');
+    note.textContent = approved ? '✓ Approved and finalized.' : '✗ Rejected.';
+
+    if (approved) {
+      const reportRes = await fetch(`${API}/research/${threadId}/report`, { headers: H });
+      if (reportRes.ok) renderReport(await reportRes.json());
+    }
+  } catch (e) {
+    showError(e.message);
+  } finally {
+    document.getElementById('approve-btn').disabled = false;
+    document.getElementById('reject-btn').disabled = false;
+  }
+}
+
+function renderReport(r) {
+  const badge = document.getElementById('rec-badge');
+  const recClass = (r.recommendation || '').toLowerCase().replace(/\s+/g, '_');
+  badge.textContent = r.recommendation;
+  badge.className = 'rec-badge ' + recClass;
+
+  document.getElementById('rec-meta').innerHTML =
+    `${escHtml(r.company_name)} (${escHtml(r.ticker)}) · Confidence <strong>${r.confidence_score}%</strong>`;
+
+  const priceRow = document.getElementById('price-row');
+  priceRow.innerHTML = '';
+  const chips = [
+    ['Current Price', r.current_price != null ? '$' + r.current_price.toFixed(2) : '—'],
+    ['12M Target', r.target_price_12m != null ? '$' + r.target_price_12m.toFixed(2) : '—'],
+    ['Upside / Downside', r.upside_downside_pct != null ? r.upside_downside_pct.toFixed(1) + '%' : '—'],
+  ];
+  chips.forEach(([label, value], i) => {
+    const cls = i === 2 && r.upside_downside_pct != null ? (r.upside_downside_pct >= 0 ? 'up' : 'down') : '';
+    priceRow.innerHTML += `<div class="price-chip"><div class="label">${label}</div><div class="value ${cls}">${value}</div></div>`;
+  });
+
+  document.getElementById('rep-summary').textContent = r.executive_summary || '—';
+  document.getElementById('rep-thesis').textContent = r.investment_thesis || '—';
+  document.getElementById('rep-financials').textContent = r.financial_highlights || '—';
+  document.getElementById('rep-risks').textContent = r.risks || '—';
+  document.getElementById('rep-sentiment').textContent = r.sentiment_summary || '—';
+
+  const sources = document.getElementById('rep-sources');
+  sources.innerHTML = '';
+  (r.data_sources || []).forEach(s => { sources.innerHTML += `<span>${escHtml(s)}</span>`; });
+
+  document.getElementById('rep-disclaimer').textContent = r.disclaimer || '';
+
+  document.getElementById('report').classList.add('visible');
+  document.getElementById('report').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+document.getElementById('ticker-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startResearch();
+});
+</script>
+</body>
+</html>

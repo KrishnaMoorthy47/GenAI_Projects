@@ -7,8 +7,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[3]))  # GenAI_Projects root → rate_limit.py
 
+from pathlib import Path as _Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from rate_limit import RateLimitMiddleware
 from codesentinel.api.health import router as health_router
@@ -57,3 +60,7 @@ app.add_middleware(
 app.include_router(health_router)
 app.include_router(review_router)
 app.include_router(webhook_router)
+
+_static_dir = _Path(__file__).parent / "static"
+_static_dir.mkdir(exist_ok=True)
+app.mount("/ui", StaticFiles(directory=str(_static_dir), html=True), name="ui")

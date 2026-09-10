@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CodeSentinel — Recorded Example</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #0d1117;
+    --surface: #161b22;
+    --surface2:#1c2430;
+    --border:  #30363d;
+    --text:    #e6edf3;
+    --muted:   #8b949e;
+    --green:   #3fb950;
+    --blue:    #58a6ff;
+    --red:     #f85149;
+    --yellow:  #d29922;
+    --purple:  #bc8cff;
+    --font:    'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 64px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 28px;
+    max-width: 820px;
+  }
+
+  header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--green);
+    letter-spacing: -0.5px;
+  }
+
+  header p {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 6px;
+  }
+
+  header .badge {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 3px 10px;
+    border: 1px solid var(--yellow);
+    border-radius: 20px;
+    font-size: 11px;
+    color: var(--yellow);
+  }
+
+  .notice {
+    width: 100%;
+    max-width: 820px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--yellow);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 24px;
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .notice strong { color: var(--text); }
+
+  .card {
+    width: 100%;
+    max-width: 820px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .card-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card-header h2 {
+    font-size: 13px;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .card-body { padding: 18px; }
+
+  .meta-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .meta-row span b { color: var(--text); }
+
+  pre.diff {
+    background: #010409;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 12.5px;
+    line-height: 1.6;
+    white-space: pre;
+  }
+
+  pre.diff .add { color: var(--green); }
+  pre.diff .ctx { color: var(--muted); }
+
+  .finding {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    background: var(--surface2);
+  }
+
+  .finding:last-child { margin-bottom: 0; }
+
+  .finding-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .sev {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+  }
+
+  .sev-medium { color: var(--yellow); border: 1px solid var(--yellow); }
+  .sev-low    { color: var(--blue); border: 1px solid var(--blue); }
+  .sev-info   { color: var(--muted); border: 1px solid var(--border); }
+  .sev-high   { color: var(--red); border: 1px solid var(--red); }
+
+  .finding-title { font-size: 13.5px; font-weight: 600; color: var(--text); }
+  .finding-loc { font-size: 11.5px; color: var(--muted); margin-left: auto; }
+
+  .finding-body {
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.7;
+    white-space: pre-wrap;
+  }
+
+  .finding-body strong { color: var(--text); }
+
+  code.inline {
+    background: #010409;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 11.5px;
+    color: var(--text);
+  }
+
+  .recommendation {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--red);
+    background: rgba(248, 81, 73, 0.08);
+    margin-top: 4px;
+  }
+
+  .recommendation .rtag {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--red);
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .recommendation .rtext {
+    font-size: 12.5px;
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .review-text {
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.75;
+    white-space: pre-wrap;
+  }
+
+  .review-text h3, .review-text b { color: var(--text); }
+
+  footer {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  footer a { color: var(--blue); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🛡️ CodeSentinel</h1>
+  <p>AI-powered GitHub PR security &amp; quality reviewer, built on a LangGraph multi-agent pipeline</p>
+  <span class="badge">recorded example</span>
+</header>
+
+<div class="notice">
+  <strong>Why this page is static.</strong> CodeSentinel normally reviews a pull request via a GitHub webhook
+  and posts its findings as a real PR comment using a GitHub API token. To let anyone try it without exposing
+  that token client-side, or triggering a real comment on a real repository, this page instead replays a
+  genuine run of the same LangGraph review pipeline — the exact same agents, the exact same LLM calls — invoked
+  directly against a real diff from this project's own commit history, with the GitHub API step skipped entirely.
+  Nothing below is fabricated; it just isn't live.
+</div>
+
+<div class="card">
+  <div class="card-header"><h2>Reviewed Diff</h2></div>
+  <div class="card-body">
+    <div class="meta-row" style="margin-bottom:12px;">
+      <span>File: <b>rate_limit.py</b></span>
+      <span>Repo: <b>GenAI_Projects</b></span>
+      <span>Commit: <b>504493e</b></span>
+    </div>
+    <pre class="diff"><span class="ctx">@@ -47,7 +47,17 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
+         if path in self._exempt:
+             return await call_next(request)
+
+-        ip = request.client.host if request.client else "unknown"</span>
+<span class="add">+        # Behind Render's (or any) reverse proxy, request.client.host is the
++        # proxy's own rotating internal IP, not the real visitor — that
++        # silently defeats per-client rate limiting. X-Forwarded-For's first
++        # entry is the original client IP; only trust it because Render's
++        # edge sets it itself, not because a client-supplied header is safe
++        # to trust in general.
++        forwarded_for = request.headers.get("x-forwarded-for")
++        if forwarded_for:
++            ip = forwarded_for.split(",")[0].strip()
++        else:
++            ip = request.client.host if request.client else "unknown"</span>
+<span class="ctx">         now = time.time()
+
+         # Evict timestamps that have fallen outside the current window</span></pre>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2>Security Findings</h2></div>
+  <div class="card-body" id="security-findings"></div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2>Code Quality Findings</h2></div>
+  <div class="card-body" id="quality-findings"></div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2>Final Review</h2></div>
+  <div class="card-body">
+    <div class="recommendation">
+      <span class="rtag">REQUEST CHANGES</span>
+      <span class="rtext">The middleware unconditionally trusts X-Forwarded-For, exposing the application to IP spoofing; add validation, tests, and documentation before merging.</span>
+    </div>
+    <div class="review-text" id="final-review" style="margin-top:14px;"></div>
+  </div>
+</div>
+
+<footer>
+  <a href="/docs" target="_blank">Swagger /docs</a> &nbsp;·&nbsp;
+  <a href="/health" target="_blank">/health</a> &nbsp;·&nbsp;
+  CodeSentinel v1.0
+</footer>
+
+<script>
+  const SECURITY_FINDINGS = [
+    {
+      severity: "medium",
+      title: "Untrusted X-Forwarded-For header",
+      loc: "rate_limit.py:56-60",
+      body: "The middleware trusts the first value of X-Forwarded-For even if the request originates directly from a client. An attacker can set this header to any IP and bypass per-client rate limits.\n\nRemediation: Validate that the request passed through a trusted proxy before using the header. Use framework-aware IP resolution (request.client.host) when no proxy is present."
+    },
+    {
+      severity: "low",
+      title: "Potential header injection / malformed values",
+      loc: "rate_limit.py:56-60",
+      body: "Splitting on commas without sanitizing can allow CRLF or other control characters to slip through.\n\nRemediation: Strip whitespace, reject control characters, and validate the extracted IP with ipaddress.ip_address()."
+    },
+    {
+      severity: "low",
+      title: "“unknown” IP bucket",
+      loc: "rate_limit.py:60",
+      body: "Falling back to the literal string \"unknown\" causes all such requests to share a single bucket, which can be abused to exhaust the rate-limit window for legitimate users behind a misconfigured proxy.\n\nRemediation: Reject the request, log it, or use a unique placeholder (e.g., a UUID) instead of a shared string."
+    },
+    {
+      severity: "info",
+      title: "No hard-coded secrets or credentials",
+      loc: "entire file",
+      body: "The file does not contain any hard-coded secrets, API keys, or credentials."
+    },
+    {
+      severity: "info",
+      title: "No insecure cryptography",
+      loc: "entire file",
+      body: "The code only uses time.time() for rate-limit windows; no cryptographic primitives are involved."
+    }
+  ];
+
+  const QUALITY_FINDINGS = [
+    {
+      severity: "high",
+      title: "Missing unit tests",
+      loc: "rate_limit.py",
+      body: "No tests cover the new IP extraction logic.\n\nRemediation: Add tests covering: header present with a single IP, header present with multiple IPs, header present with spaces, header absent, and request.client missing."
+    },
+    {
+      severity: "medium",
+      title: "Potential duplication if reused elsewhere",
+      loc: "rate_limit.py",
+      body: "If the same “extract client IP” logic appears elsewhere in the repo, it should be extracted into a shared helper (e.g. _extract_client_ip(request)) rather than duplicated."
+    },
+    {
+      severity: "medium",
+      title: "Missing docstring",
+      loc: "rate_limit.py:50-55",
+      body: "The surrounding function lacks a docstring explaining its purpose and the special handling of reverse proxies."
+    },
+    {
+      severity: "low",
+      title: "Generic variable name",
+      loc: "rate_limit.py:56-60",
+      body: "The variable ip is a bit generic. In a larger module, client_ip would make its purpose explicit."
+    },
+    {
+      severity: "info",
+      title: "Complexity and performance",
+      loc: "rate_limit.py:56-60",
+      body: "The new block is a single, short if/else — no complexity concerns, and it runs in O(1) time."
+    }
+  ];
+
+  const FINAL_REVIEW = `Summary
+The rate-limit middleware now extracts the client IP from the X-Forwarded-For header without validating its source or format. This introduces a medium-severity risk of IP spoofing and potential header injection. Additionally, the change lacks unit tests and documentation.
+
+Positive Observations
+- The code is concise and well-commented, making the intent clear.
+- The logic is straightforward and performs efficiently (O(1) time).
+- No hard-coded secrets or cryptographic issues are present.
+
+Suggested Refactor
+def _extract_client_ip(request: Request) -> str:
+    """Return the real client IP, taking into account reverse-proxy headers."""
+    forwarded_for = request.headers.get("x-forwarded-for")
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+This keeps the extraction logic isolated, making it easier to test and reuse.`;
+
+  function renderFindings(list, elId) {
+    const el = document.getElementById(elId);
+    el.innerHTML = list.map(f => `
+      <div class="finding">
+        <div class="finding-head">
+          <span class="sev sev-${f.severity}">${f.severity}</span>
+          <span class="finding-title">${f.title}</span>
+          <span class="finding-loc">${f.loc}</span>
+        </div>
+        <div class="finding-body">${f.body}</div>
+      </div>
+    `).join("");
+  }
+
+  renderFindings(SECURITY_FINDINGS, "security-findings");
+  renderFindings(QUALITY_FINDINGS, "quality-findings");
+  document.getElementById("final-review").textContent = FINAL_REVIEW;
+</script>
+
+</body>
+</html>

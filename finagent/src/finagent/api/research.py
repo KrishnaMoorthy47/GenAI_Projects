@@ -27,6 +27,14 @@ from finagent.services.streaming import (
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/research", tags=["research"])
 
+# Same-origin, unauthenticated mirror of every route below — lets the
+# bundled browser UI drive real research runs without an API key ever
+# reaching the client. Not a bypass of the abuse protection: the shared
+# RateLimitMiddleware (see main.py) still caps every client by IP
+# regardless of which of these two routers they hit. Mounted under /demo
+# in main.py, hidden from the OpenAPI schema there.
+demo_router = APIRouter(prefix="/research", tags=["research"])
+
 
 def verify_api_key(x_api_key: str = Header(...)):
     settings = get_settings()
@@ -41,11 +49,7 @@ def verify_api_key(x_api_key: str = Header(...)):
     return x_api_key
 
 
-@router.post("", response_model=ResearchResponse)
-async def start_research(
-    body: ResearchRequest,
-    _: str = Depends(verify_api_key),
-):
+async def _start_research(body: ResearchRequest) -> ResearchResponse:
     """Start an autonomous research session for a stock ticker.
 
     ``body.query`` is free text that flows unsanitized into the LLM prompt in
@@ -113,20 +117,12 @@ async def start_research(
     )
 
 
-@router.get("/{thread_id}/stream")
-async def stream_research(
-    thread_id: str,
-    _: str = Depends(verify_api_key),
-):
+def _stream_research(thread_id: str):
     """Stream research progress as Server-Sent Events."""
     return EventSourceResponse(sse_generator(thread_id))
 
 
-@router.get("/{thread_id}/status", response_model=StatusResponse)
-async def get_research_status(
-    thread_id: str,
-    _: str = Depends(verify_api_key),
-):
+async def _get_research_status(thread_id: str) -> StatusResponse:
     """Get the current status of a research session."""
     status = get_status(thread_id)
     if status is None:
@@ -154,12 +150,7 @@ async def get_research_status(
     )
 
 
-@router.post("/{thread_id}/approve", response_model=ResearchResponse)
-async def approve_research(
-    thread_id: str,
-    body: ApprovalRequest,
-    _: str = Depends(verify_api_key),
-):
+async def _approve_research(thread_id: str, body: ApprovalRequest) -> ResearchResponse:
     """Resume a paused research session after human review."""
     status = get_status(thread_id)
     if status is None:
@@ -200,11 +191,7 @@ async def approve_research(
     )
 
 
-@router.get("/{thread_id}/report", response_model=InvestmentReport)
-async def get_report(
-    thread_id: str,
-    _: str = Depends(verify_api_key),
-):
+async def _get_report(thread_id: str) -> InvestmentReport:
     """Retrieve the final investment report for a completed research session."""
     status = get_status(thread_id)
     if status is None:
@@ -230,3 +217,59 @@ async def get_report(
         raise HTTPException(status_code=404, detail="Report not yet generated")
 
     return InvestmentReport(**report_data)
+
+
+# ── Authenticated routes (real API surface) ─────────────────────────────
+
+
+@router.post("", response_model=ResearchResponse)
+async def start_research(body: ResearchRequest, _: str = Depends(verify_api_key)):
+    return await _start_research(body)
+
+
+@router.get("/{thread_id}/stream")
+async def stream_research(thread_id: str, _: str = Depends(verify_api_key)):
+    return _stream_research(thread_id)
+
+
+@router.get("/{thread_id}/status", response_model=StatusResponse)
+async def get_research_status(thread_id: str, _: str = Depends(verify_api_key)):
+    return await _get_research_status(thread_id)
+
+
+@router.post("/{thread_id}/approve", response_model=ResearchResponse)
+async def approve_research(thread_id: str, body: ApprovalRequest, _: str = Depends(verify_api_key)):
+    return await _approve_research(thread_id, body)
+
+
+@router.get("/{thread_id}/report", response_model=InvestmentReport)
+async def get_report(thread_id: str, _: str = Depends(verify_api_key)):
+    return await _get_report(thread_id)
+
+
+# ── Demo routes (no auth — see demo_router docstring above) ─────────────
+
+
+@demo_router.post("", response_model=ResearchResponse)
+async def demo_start_research(body: ResearchRequest):
+    return await _start_research(body)
+
+
+@demo_router.get("/{thread_id}/stream")
+async def demo_stream_research(thread_id: str):
+    return _stream_research(thread_id)
+
+
+@demo_router.get("/{thread_id}/status", response_model=StatusResponse)
+async def demo_get_research_status(thread_id: str):
+    return await _get_research_status(thread_id)
+
+
+@demo_router.post("/{thread_id}/approve", response_model=ResearchResponse)
+async def demo_approve_research(thread_id: str, body: ApprovalRequest):
+    return await _approve_research(thread_id, body)
+
+
+@demo_router.get("/{thread_id}/report", response_model=InvestmentReport)
+async def demo_get_report(thread_id: str):
+    return await _get_report(thread_id)

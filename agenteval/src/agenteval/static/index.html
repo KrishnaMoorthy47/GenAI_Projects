@@ -432,7 +432,7 @@
 <header>
   <h1>⚡ AgentEval</h1>
   <p>LangGraph ReAct SQL Agent + 4-Scorer Evaluation Framework</p>
-  <div class="badge">localhost:8003</div>
+  <div class="badge">live demo</div>
 </header>
 
 <div class="card">
@@ -479,7 +479,7 @@
     <p class="eval-intro">
       Runs the built-in evaluation suite against the SQL Agent.
       <strong>4 scorers</strong> — task_success, tool_accuracy, trajectory, hallucination —
-      each weighted to produce a final composite score. Results are polled every 2 s.
+      each weighted to produce a final composite score. Results are polled every few seconds.
     </p>
 
     <button class="btn btn-green" id="eval-btn" onclick="runEval()">
@@ -518,9 +518,10 @@
 </footer>
 
 <script>
-const API = 'http://localhost:8003';
-const KEY = 'dev-secret';
-const H   = { 'Content-Type': 'application/json', 'x-api-key': KEY };
+// Same-origin, unauthenticated mirror routes (see main.py) — the real
+// x-api-key-protected API never needs to be reachable from this page.
+const API = window.location.origin + '/demo';
+const H   = { 'Content-Type': 'application/json' };
 
 // ── Tab switching ────────────────────────────────────────────────
 function switchTab(name, btn) {
@@ -634,7 +635,7 @@ function buildStepEl(step, idx) {
   const d = document.createElement('details');
   d.className = 'traj-step';
 
-  const tool   = step.tool || step.action || 'step';
+  const tool   = step.name || step.tool || step.action || 'step';
   const inp    = step.tool_input || step.input || '';
   const out    = step.tool_output || step.output || step.observation || '';
   const inpStr = typeof inp === 'object' ? JSON.stringify(inp, null, 2) : String(inp);
@@ -681,11 +682,12 @@ async function runEval() {
   setProgress(5, 'Submitting eval job…');
 
   try {
-    const runName = 'ui-run-' + Date.now();
+    // push_to_langsmith: false — the deployed instance has no LANGSMITH_API_KEY
+    // configured (verified via a real run), so leaving this true would fail.
     const res = await fetch(`${API}/eval/run-eval`, {
       method: 'POST',
       headers: H,
-      body: JSON.stringify({ name: runName })
+      body: JSON.stringify({ push_to_langsmith: false })
     });
 
     if (!res.ok) {
@@ -702,11 +704,24 @@ async function runEval() {
   }
 }
 
+// Polling at 3s keeps status checks under the shared 20 req/60s rate limit
+// on their own (a 20-case run also makes real backend calls per case, so
+// even this isn't immune — a transient 429 here means "slow down", not
+// "the run failed", so it backs off and keeps polling instead of aborting.
+const POLL_INTERVAL_MS = 3000;
+
 function pollEval(runId, pct) {
   if (_pollTimer) clearTimeout(_pollTimer);
   _pollTimer = setTimeout(async () => {
     try {
       const res = await fetch(`${API}/eval/${runId}/status`, { headers: H });
+
+      if (res.status === 429) {
+        const retryAfter = Number(res.headers.get('Retry-After')) || 5;
+        setProgress(pct, `Rate limited — retrying in ${retryAfter}s…`);
+        _pollTimer = setTimeout(() => pollEval(runId, pct), retryAfter * 1000);
+        return;
+      }
       if (!res.ok) throw new Error(`Status ${res.status}`);
       const data = await res.json();
 
@@ -714,15 +729,19 @@ function pollEval(runId, pct) {
       const prog = Math.min(pct + 10, 90);
       setProgress(prog, statusLabel(status, data));
 
-      if (status === 'completed') {
-        setProgress(100, 'Complete!');
+      if (status === 'completed' || status === 'failed') {
+        // /status only carries progress counters — the actual scores live
+        // in the separate /report endpoint, fetched once the run is done.
+        const reportRes = await fetch(`${API}/eval/${runId}/report`, { headers: H });
+        if (!reportRes.ok) throw new Error(`Report ${reportRes.status}`);
+        const report = await reportRes.json();
+
+        setProgress(100, status === 'completed' ? 'Complete!' : 'Completed with errors');
         setTimeout(() => {
           document.getElementById('eval-progress').style.display = 'none';
-          renderScorecard(data);
+          renderScorecard(report);
         }, 400);
         resetEvalBtn();
-      } else if (status === 'failed') {
-        throw new Error(data.error || 'Eval job failed');
       } else {
         pollEval(runId, prog);
       }
@@ -730,13 +749,13 @@ function pollEval(runId, pct) {
       showError('eval-error', e.message);
       resetEvalBtn();
     }
-  }, 2000);
+  }, POLL_INTERVAL_MS);
 }
 
 function statusLabel(status, data) {
   if (status === 'completed') return '✓ Complete';
   if (status === 'failed')    return '✗ Failed';
-  const done = data.cases_completed ?? '?';
+  const done = data.completed_cases ?? '?';
   const total = data.total_cases ?? '?';
   return `Running… ${done}/${total} cases`;
 }
@@ -753,30 +772,23 @@ function resetEvalBtn() {
 }
 
 function renderScorecard(data) {
-  const results   = data.results   || {};
-  const scorers   = results.scorer_results || {};
-  const aggregate = results.aggregate     || {};
-  const cases     = results.total_cases   ?? data.total_cases ?? '?';
-  const passed    = results.passed_cases  ?? data.cases_completed ?? '?';
+  const agg   = data.aggregate_scores || {};
+  const cases = data.case_results     || [];
 
+  // Real weights, from eval/reporter.py — 40/20/20/20.
   const SCORERS = [
-    { key: 'task_success',   label: 'Task Success',   weight: 0.35 },
-    { key: 'tool_accuracy',  label: 'Tool Accuracy',  weight: 0.25 },
-    { key: 'trajectory',     label: 'Trajectory',     weight: 0.20 },
-    { key: 'hallucination',  label: 'Hallucination',  weight: 0.20 },
+    { key: 'task_success',         label: 'Task Success',         weight: 0.40 },
+    { key: 'tool_accuracy',        label: 'Tool Accuracy',        weight: 0.20 },
+    { key: 'trajectory_efficiency',label: 'Trajectory',           weight: 0.20 },
+    { key: 'hallucination',        label: 'Hallucination',        weight: 0.20 },
   ];
 
   const tbody = document.getElementById('score-rows');
   tbody.innerHTML = '';
 
-  let weightedTotal = 0;
-
   SCORERS.forEach(({ key, label, weight }) => {
-    const scoreObj = scorers[key] || {};
-    const score = scoreObj.score ?? scoreObj.mean ?? scoreObj.value ?? 0;
+    const score = agg[key] ?? 0;
     const pct = Math.round(score * 100);
-    weightedTotal += score * weight;
-
     const barClass = score >= 0.75 ? '' : score >= 0.5 ? 'mid' : 'low';
 
     const tr = document.createElement('tr');
@@ -793,9 +805,7 @@ function renderScorecard(data) {
     tbody.appendChild(tr);
   });
 
-  // Use API aggregate if available, else our calculation
-  const finalScore = aggregate.weighted_score ?? aggregate.score ?? weightedTotal;
-  const finalPct   = Math.round(finalScore * 100);
+  const finalPct = Math.round((agg.overall ?? 0) * 100);
 
   const totalTr = document.createElement('tr');
   totalTr.className = 'total-row';
@@ -811,9 +821,10 @@ function renderScorecard(data) {
   `;
   tbody.appendChild(totalTr);
 
+  const errored = cases.filter(c => c.error).length;
   document.getElementById('eval-meta-row').innerHTML = `
-    <span>Cases: <strong style="color:var(--text)">${cases}</strong></span>
-    <span>Passed: <strong style="color:var(--green)">${passed}</strong></span>
+    <span>Cases: <strong style="color:var(--text)">${cases.length || data.total_cases || '?'}</strong></span>
+    <span>Errored: <strong style="color:${errored ? 'var(--red)' : 'var(--green)'}">${errored}</strong></span>
     <span>Run ID: <strong style="color:var(--text)">${data.run_id ?? '—'}</strong></span>
   `;
 

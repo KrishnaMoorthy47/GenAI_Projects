@@ -13,11 +13,15 @@ if sys.platform == "win32":
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parents[3]))  # GenAI_Projects root → rate_limit.py
 
+from pathlib import Path as _Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from rate_limit import RateLimitMiddleware
 from finagent.api.health import router as health_router
+from finagent.api.research import demo_router as demo_research_router
 from finagent.api.research import router as research_router
 from finagent.config import get_settings
 from finagent.services.checkpointer import close_checkpointer, init_checkpointer
@@ -78,3 +82,8 @@ app.add_middleware(
 
 app.include_router(health_router)
 app.include_router(research_router)
+app.include_router(demo_research_router, prefix="/demo", include_in_schema=False)
+
+_static_dir = _Path(__file__).parent / "static"
+_static_dir.mkdir(exist_ok=True)
+app.mount("/ui", StaticFiles(directory=str(_static_dir), html=True), name="ui")

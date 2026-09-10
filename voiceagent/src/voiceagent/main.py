@@ -97,11 +97,23 @@ async def health() -> HealthResponse:
     return HealthResponse(active_sessions=store.active_count)
 
 
-@app.post("/api/v1/session", response_model=SessionCreateResponse, dependencies=[Depends(_require_api_key)])
-async def create_session() -> SessionCreateResponse:
+def _create_session() -> SessionCreateResponse:
     store: SessionStore = app.state.sessions
     session = store.create()
     return SessionCreateResponse(session_id=session.session_id)
+
+
+def _delete_session(session_id: str) -> SessionDeleteResponse:
+    store: SessionStore = app.state.sessions
+    deleted = store.delete(session_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return SessionDeleteResponse(session_id=session_id)
+
+
+@app.post("/api/v1/session", response_model=SessionCreateResponse, dependencies=[Depends(_require_api_key)])
+async def create_session() -> SessionCreateResponse:
+    return _create_session()
 
 
 @app.delete(
@@ -110,17 +122,28 @@ async def create_session() -> SessionCreateResponse:
     dependencies=[Depends(_require_api_key)],
 )
 async def delete_session(session_id: str) -> SessionDeleteResponse:
-    store: SessionStore = app.state.sessions
-    deleted = store.delete(session_id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Session not found")
-    return SessionDeleteResponse(session_id=session_id)
+    return _delete_session(session_id)
+
+
+# Same logic, mounted again with no auth dependency — lets the bundled
+# browser UI create/delete sessions without an API key ever reaching the
+# client. The WebSocket voice pipeline itself already requires no auth (see
+# below), so this just closes the one remaining gap. Abuse protection still
+# comes from the shared RateLimitMiddleware (per-IP), not from the key.
+@app.post("/demo/session", response_model=SessionCreateResponse, include_in_schema=False)
+async def demo_create_session() -> SessionCreateResponse:
+    return _create_session()
+
+
+@app.delete("/demo/session/{session_id}", response_model=SessionDeleteResponse, include_in_schema=False)
+async def demo_delete_session(session_id: str) -> SessionDeleteResponse:
+    return _delete_session(session_id)
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def index() -> HTMLResponse:
     static_index = os.path.join(_static_dir, "index.html")
-    with open(static_index) as f:
+    with open(static_index, encoding="utf-8") as f:
         return HTMLResponse(f.read())
 
 
