@@ -8,10 +8,10 @@ A portfolio project demonstrating a **real-time voice AI pipeline**: raw PCM aud
 
 | Component | Description |
 |-----------|-------------|
-| **STT** | OpenAI Whisper transcribes raw PCM audio to text |
+| **STT** | Groq Whisper transcribes raw PCM audio to text |
 | **LLM** | Groq LLaMA streams a response, sentence by sentence |
-| **TTS** | OpenAI TTS converts each sentence to MP3 audio |
-| **WebSocket** | Bidirectional pipeline: PCM bytes in, base64 MP3 chunks out |
+| **TTS** | Groq Orpheus converts each sentence to WAV audio |
+| **WebSocket** | Bidirectional pipeline: PCM bytes in, base64 WAV chunks out |
 | **Frontend** | Static browser test client mounted at `/` |
 
 ---
@@ -28,9 +28,9 @@ FastAPI  (port 8004)
 ┌─────────────────────────────────────────────┐
 │  Voice Pipeline (per message)               │
 │                                             │
-│  PCM bytes → Whisper STT → transcript       │
+│  PCM bytes → Groq Whisper STT → transcript  │
 │       → Groq LLaMA (sentence streaming)     │
-│       → OpenAI TTS per sentence             │
+│       → Groq Orpheus TTS per sentence       │
 │       → {"type":"audio","data":"<base64>"}  │
 │       → {"type":"done"}                     │
 └─────────────────────────────────────────────┘
@@ -49,7 +49,7 @@ uv pip install -r requirements.txt
 
 # 2. Configure environment
 cp .env.example .env
-# Edit .env — set OPENAI_API_KEY, GROQ_API_KEY, API_KEY
+# Edit .env — set GROQ_API_KEY, API_KEY
 
 # 3. Run server
 uv run uvicorn voiceagent.main:app --port 8004 --reload
@@ -75,7 +75,7 @@ uv run pytest tests/ -v
 
 **WebSocket message format:**
 - Send: raw PCM bytes (16kHz, 16-bit, mono)
-- Receive: `{"type": "transcript", "text": "..."}` → `{"type": "audio", "data": "<base64 MP3>"}` (one per sentence) → `{"type": "done"}`
+- Receive: `{"type": "transcript", "text": "..."}` → `{"type": "audio", "data": "<base64 WAV>"}` (one per sentence) → `{"type": "done"}`
 
 ---
 
@@ -88,9 +88,9 @@ voiceagent/
 │   ├── config.py        # Settings (pydantic-settings)
 │   ├── models.py        # AudioMessage, TranscriptMessage, DoneMessage
 │   ├── services/
-│   │   ├── stt.py       # Whisper transcription (OpenAI)
+│   │   ├── stt.py       # Whisper transcription (Groq)
 │   │   ├── llm.py       # Groq LLaMA sentence streaming
-│   │   ├── tts.py       # OpenAI TTS → MP3 bytes
+│   │   ├── tts.py       # Groq Orpheus TTS → WAV bytes
 │   │   └── session.py   # In-memory session store
 │   └── static/          # Browser test frontend (HTML/JS)
 ├── tests/               # 4 test modules (all mocked)
@@ -107,10 +107,9 @@ voiceagent/
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `API_KEY` | required | `x-api-key` header auth |
-| `OPENAI_API_KEY` | — | Whisper STT + TTS |
-| `TTS_VOICE` | `alloy` | OpenAI TTS voice |
-| `TTS_MODEL` | `tts-1` | OpenAI TTS model |
-| `GROQ_API_KEY` | — | LLM streaming |
+| `GROQ_API_KEY` | — | LLM streaming, Whisper STT, and Orpheus TTS |
+| `TTS_VOICE` | `autumn` | Groq Orpheus TTS voice |
+| `TTS_MODEL` | `canopylabs/orpheus-v1-english` | Groq Orpheus TTS model |
 | `GROQ_MODEL` | `openai/gpt-oss-20b` | Groq model |
 | `PORT` | `8004` | Server port |
 
@@ -130,4 +129,4 @@ docker-compose -f docker/docker-compose.yml up --build
 
 - **Sentence-level streaming** — LLM output is buffered until `.!?` punctuation, then TTS fires per sentence; reduces perceived latency vs waiting for the full response
 - **Sessions in-memory** — no database required; sessions are keyed by UUID and scoped to a single server instance
-- **OpenAI for STT** — Whisper via the OpenAI API (not local model) keeps the service stateless and avoids GPU dependency
+- **Groq for STT/TTS** — Whisper and Orpheus via Groq's OpenAI-compatible audio endpoints keep the service stateless, avoid a GPU dependency, and mean the whole service runs on a single API key

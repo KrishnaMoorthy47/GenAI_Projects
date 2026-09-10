@@ -1,4 +1,4 @@
-"""Speech-to-text via OpenAI Whisper API."""
+"""Speech-to-text via Groq's Whisper API (OpenAI-compatible endpoint)."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from voiceagent.config import get_settings
 @lru_cache
 def get_client() -> AsyncOpenAI:
     settings = get_settings()
-    return AsyncOpenAI(api_key=settings.openai_api_key or None)
+    return AsyncOpenAI(api_key=settings.groq_api_key or None, base_url="https://api.groq.com/openai/v1")
 
 
 def pcm_to_wav(pcm_bytes: bytes, sample_rate: int = 16000, channels: int = 1, sample_width: int = 2) -> bytes:
@@ -51,7 +51,7 @@ async def transcribe(audio_bytes: bytes, is_wav: bool = False) -> str:
     client = get_client()
 
     response = await client.audio.transcriptions.create(
-        model="whisper-1",
+        model="whisper-large-v3-turbo",
         file=file_tuple,
         response_format="text",
     )

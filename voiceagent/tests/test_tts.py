@@ -1,4 +1,4 @@
-"""Tests for the TTS service (OpenAI speech)."""
+"""Tests for the TTS service (Groq Orpheus speech)."""
 
 from __future__ import annotations
 
@@ -14,8 +14,8 @@ from voiceagent.services.tts import synthesize, synthesize_base64
 
 @pytest.mark.asyncio
 async def test_synthesize_returns_bytes():
-    """synthesize() should return audio bytes from the OpenAI response."""
-    fake_audio = b"fake_mp3_bytes"
+    """synthesize() should return audio bytes from the Groq response."""
+    fake_audio = b"fake_wav_bytes"
     mock_response = MagicMock()
     mock_response.content = fake_audio
 
@@ -39,19 +39,19 @@ async def test_synthesize_passes_text_and_voice():
     mock_client.audio.speech.create = AsyncMock(return_value=mock_response)
 
     with patch("voiceagent.services.tts.get_client", return_value=mock_client):
-        await synthesize("Test sentence", voice="nova", model="tts-1")
+        await synthesize("Test sentence", voice="troy", model="canopylabs/orpheus-v1-english")
 
     call_kwargs = mock_client.audio.speech.create.call_args.kwargs
     assert call_kwargs["input"] == "Test sentence"
-    assert call_kwargs["voice"] == "nova"
-    assert call_kwargs["model"] == "tts-1"
+    assert call_kwargs["voice"] == "troy"
+    assert call_kwargs["model"] == "canopylabs/orpheus-v1-english"
 
 
 @pytest.mark.asyncio
-async def test_synthesize_uses_mp3_format():
-    """synthesize() should request MP3 format from the API."""
+async def test_synthesize_uses_wav_format():
+    """synthesize() should request WAV format from the API — Orpheus doesn't support mp3."""
     mock_response = MagicMock()
-    mock_response.content = b"mp3"
+    mock_response.content = b"wav"
 
     mock_client = MagicMock()
     mock_client.audio.speech.create = AsyncMock(return_value=mock_response)
@@ -60,7 +60,7 @@ async def test_synthesize_uses_mp3_format():
         await synthesize("Hi")
 
     call_kwargs = mock_client.audio.speech.create.call_args.kwargs
-    assert call_kwargs["response_format"] == "mp3"
+    assert call_kwargs["response_format"] == "wav"
 
 
 # ── synthesize_base64 ─────────────────────────────────────────────────────────

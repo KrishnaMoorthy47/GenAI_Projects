@@ -135,7 +135,7 @@ async def voice_websocket(websocket: WebSocket, session_id: str) -> None:
     Server sends JSON messages:
       { "type": "transcript", "text": "..." }
       { "type": "llm_chunk",  "text": "..." }
-      { "type": "audio",      "data": "<base64-mp3>" }
+      { "type": "audio",      "data": "<base64-wav>" }
       { "type": "done" }
       { "type": "error",      "message": "..." }
     """

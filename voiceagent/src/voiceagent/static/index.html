@@ -497,9 +497,9 @@ function stopRecording() {
 }
 
 /* ── Audio Playback ───────────────────────────────────────────── */
-function playAudio(base64mp3) {
+function playAudio(base64wav) {
   playQueue = playQueue.then(() => new Promise((resolve) => {
-    const audio = new Audio('data:audio/mp3;base64,' + base64mp3);
+    const audio = new Audio('data:audio/wav;base64,' + base64wav);
     audio.onended  = resolve;
     audio.onerror  = resolve;
     audio.play().catch(resolve);

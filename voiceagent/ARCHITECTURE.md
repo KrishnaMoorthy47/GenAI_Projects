@@ -1,6 +1,6 @@
 # VoiceAgent — Architecture
 
-A real-time voice AI agent over WebSocket. The client streams raw PCM audio — the server transcribes with Whisper, generates a response with Groq LLM (sentence-streamed), synthesizes each sentence to audio with OpenAI TTS, and sends base64-encoded MP3 chunks back. A static browser frontend is included for testing.
+A real-time voice AI agent over WebSocket. The client streams raw PCM audio — the server transcribes with Groq's Whisper, generates a response with Groq LLM (sentence-streamed), synthesizes each sentence to audio with Groq's Orpheus TTS, and sends base64-encoded WAV chunks back. A static browser frontend is included for testing.
 
 ## Flow
 
@@ -14,10 +14,10 @@ FastAPI  (port 8004)
 ┌─────────────────────────────────┐
 │  Voice Pipeline (per message)   │
 │                                 │
-│  PCM bytes → Whisper STT        │
+│  PCM bytes → Groq Whisper STT   │
 │       → Groq LLM (streaming)    │
-│       → OpenAI TTS per sentence │
-│       → base64 MP3 → client     │
+│       → Groq Orpheus per sentence│
+│       → base64 WAV → client     │
 └─────────────────────────────────┘
     │
 SessionStore  (in-memory, keyed by session UUID)
@@ -38,9 +38,8 @@ SessionStore  (in-memory, keyed by session UUID)
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `API_KEY` | required | `x-api-key` header value |
-| `OPENAI_API_KEY` | — | Used for Whisper STT + TTS |
-| `TTS_VOICE` | `alloy` | OpenAI TTS voice |
-| `TTS_MODEL` | `tts-1` | OpenAI TTS model |
-| `GROQ_API_KEY` | — | Used for LLM streaming |
+| `GROQ_API_KEY` | — | Used for LLM streaming, Whisper STT, and Orpheus TTS |
+| `TTS_VOICE` | `autumn` | Groq Orpheus TTS voice |
+| `TTS_MODEL` | `canopylabs/orpheus-v1-english` | Groq Orpheus TTS model |
 | `GROQ_MODEL` | `openai/gpt-oss-20b` | Groq model |
 | `PORT` | `8004` | Server port |
