@@ -160,3 +160,46 @@ class TestCacheAdapter:
         assert len(history) <= 4  # max 2 turns * 2 messages
         cache_adapter.clear_history(sid)
         get_settings.cache_clear()
+
+
+class TestEmptyAnswerHandling:
+    @pytest.fixture
+    def pipeline(self, monkeypatch, sample_chunks):
+        from chatbot.config import get_settings
+        from chatbot.services import query_service
+
+        monkeypatch.setenv("VECTOR_BACKEND", "faiss")
+        monkeypatch.setenv("ENABLE_RELEVANCE_PRECHECK", "false")
+        get_settings.cache_clear()
+        with (
+            patch.object(query_service.llm_adapter, "embed_query", return_value=[0.1]),
+            patch.object(query_service.vector_adapter, "is_index_loaded", return_value=True),
+            patch.object(query_service.vector_adapter, "search", return_value=sample_chunks),
+            patch.object(query_service.cache_adapter, "get_history", return_value=[]),
+            patch.object(query_service.cache_adapter, "save_history") as save_history,
+            patch.object(query_service.llm_adapter, "chat_completion") as chat_completion,
+        ):
+            yield query_service, chat_completion, save_history
+        get_settings.cache_clear()
+
+    def test_retries_once_after_empty_answer(self, pipeline):
+        query_service, chat_completion, save_history = pipeline
+        chat_completion.side_effect = ["", "A real answer."]
+
+        result = query_service.run_rag_pipeline("What is X?", "session-1234")
+
+        assert result.answer == "A real answer."
+        assert result.has_context is True
+        assert chat_completion.call_count == 2
+        save_history.assert_called_once_with("session-1234", "What is X?", "A real answer.")
+
+    def test_returns_fallback_when_still_empty(self, pipeline):
+        query_service, chat_completion, save_history = pipeline
+        chat_completion.side_effect = ["", "   "]
+
+        result = query_service.run_rag_pipeline("What is X?", "session-1234")
+
+        assert result.answer == query_service.EMPTY_ANSWER_FALLBACK
+        assert result.has_context is False
+        assert chat_completion.call_count == 2
+        save_history.assert_not_called()

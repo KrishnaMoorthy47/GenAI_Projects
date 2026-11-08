@@ -112,6 +112,10 @@ SCOPE_REFUSAL = (
     "parameters, or how I'm built."
 )
 
+EMPTY_ANSWER_FALLBACK = (
+    "Sorry, I couldn't put an answer together just now. Please try asking again."
+)
+
 META_QUESTION_PATTERN = re.compile(
     r"system\s*prompt"
     r"|your\s+(instructions?|prompt|parameters?|config(uration)?|architecture|source\s*code)"
@@ -268,6 +272,12 @@ def run_rag_pipeline(
     # Step 9: Main LLM call
     messages = build_messages(question, context_str, history)
     answer = llm_adapter.chat_completion(messages)
+    if not answer.strip():
+        logger.warning("LLM returned an empty answer for session %s — retrying once", session_id)
+        answer = llm_adapter.chat_completion(messages)
+    if not answer.strip():
+        logger.warning("LLM returned an empty answer again for session %s", session_id)
+        return RAGResult(answer=EMPTY_ANSWER_FALLBACK, sources=[], has_context=False)
 
     # Step 10: Save updated history
     cache_adapter.save_history(session_id, question, answer)
