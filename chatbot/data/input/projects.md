@@ -1,7 +1,8 @@
 # Krishna's Projects
 
-This document describes the three live projects on Krishna's portfolio. All
-three are FastAPI services from github.com/KrishnaMoorthy47/GenAI_Projects.
+This document describes the five live projects on Krishna's portfolio: FinAgent,
+CodeSentinel, Personal RAG Chatbot, AgentEval, and VoiceAgent. All
+five are FastAPI services from github.com/KrishnaMoorthy47/GenAI_Projects.
 
 ## FinAgent — Multi-agent stock research with a human-in-the-loop approval gate
 
@@ -61,8 +62,10 @@ reach the model, so an off-topic question doesn't get a confidently-wrong
 answer. Every response reports has_context so the caller knows whether real
 document content backed the answer. Multi-turn history is tracked per
 session_id via Redis, with a documented graceful fallback to in-memory if
-Redis isn't available. Every query passes OpenAI's moderation endpoint
-before it reaches the retrieval step.
+Redis isn't available. A two-layer scope guard refuses questions that probe
+the system's own prompt or config, and phone numbers are redacted from every
+answer. The deployed instance runs on Groq, which has no moderation endpoint,
+so the OpenAI moderation check applies only when OpenAI is the provider.
 
 **The trade-off**: Chose a documented in-memory fallback over requiring
 Redis to be up. A demo visitor's chat history resetting on a cold start is
@@ -71,7 +74,7 @@ isn't resilient, it's an outage waiting to happen.
 
 **Architecture**: Ingestion chunks documents (575 tokens, 70% overlap) and
 embeds them into a FAISS index. A query is validated, sanitized, and
-moderation-checked, then embedded and matched against the FAISS index
+scope-checked, then embedded and matched against the FAISS index
 (top-5), filtered by the dynamic threshold, assembled into a 4,000-token
 context budget alongside Redis chat history, sent to the LLM, and the answer
 is returned with source citations.
@@ -80,7 +83,7 @@ is returned with source citations.
 80%-of-best-score threshold filter for hallucination control. 4,000-token
 context budget, 5-turn conversation memory.
 
-**Tech stack**: FastAPI, FAISS, LangChain, OpenAI (GPT-4o), Redis, tiktoken.
+**Tech stack**: FastAPI, FAISS, LangChain, Groq (openai/gpt-oss-20b), Redis, tiktoken.
 
 ---
 
@@ -98,7 +101,7 @@ SQL query actually returned, not just "does this sound right."
 
 **The solution**: Two of the four scorers are deterministic (tool-call
 recall, and a trajectory-efficiency penalty of -0.1 per unnecessary step)
-and two use GPT-4o as a judge — one checking whether the answer matches what
+and two use a Groq-hosted LLM as a judge — one checking whether the answer matches what
 was expected, one checking whether the answer is actually grounded in the
 SQL result returned, not just plausible-sounding. The four scores combine
 into a single weighted score (40% task success, 20% tool accuracy, 20%
@@ -119,4 +122,70 @@ a report gives a per-case breakdown with LangSmith trace links.
 4 dimensions, weighted 40/20/20/20. Test coverage of 42 tests, fully mocked
 — no OpenAI calls needed to run them.
 
-**Tech stack**: LangGraph, FastAPI, SQLite, LangSmith, OpenAI (GPT-4o judge).
+**Tech stack**: LangGraph, FastAPI, SQLite, LangSmith, Groq (LLM-as-judge).
+
+---
+
+## CodeSentinel — AI GitHub PR reviewer with parallel security and quality agents
+
+**What it does**: Point it at a GitHub pull request — a webhook fires
+automatically on open/update, or call the API directly with any repo and PR
+number — and it posts back a structured review: security findings with file
+and line number, code-quality notes, and a merge recommendation.
+
+**The challenge**: A reviewer that only pattern-matches known vulnerability
+signatures misses anything novel; one that only asks an LLM whether code is
+safe hallucinates confidence on code it doesn't understand. Neither alone is
+trustworthy enough to gate a merge on.
+
+**The solution**: A security agent and a quality agent run as a true parallel
+LangGraph superstep. The security agent combines 9 regex-based OWASP pattern
+checks (SQL injection, hardcoded secrets, weak hashing, XSS, disabled SSL
+verification, and more) with an LLM pass for context-aware vulnerabilities.
+The quality agent reviews complexity and error handling separately. A summary
+agent merges both into one Markdown review with findings, severity, file:line,
+and a REQUEST_CHANGES or APPROVE call, posted to the PR via the GitHub API.
+
+**The trade-off**: Kept the regex-based OWASP layer even though the LLM pass
+catches most of the same issues. Deterministic matches are instant, free, and
+can't be reasoned away by ambiguous code.
+
+**Architecture**: GitHub webhook (HMAC signature verified) or POST /review
+(x-api-key verified) → parse_diff → parallel security_agent and quality_agent
+→ merge_findings → summary_agent → post_pr_review as a GitHub PR comment.
+
+**Metrics**: 9 OWASP regex patterns. True LangGraph fan-out/fan-in. HMAC
+signature verification on every webhook payload.
+
+**Tech stack**: LangGraph, FastAPI, PyGithub, SQLAlchemy, aiosqlite, HMAC.
+
+---
+
+## VoiceAgent — Real-time voice AI over a single WebSocket
+
+**What it does**: Click record, talk, and hear a response — raw PCM audio in,
+synthesized speech out, streamed over one WebSocket connection. A browser test
+client ships with the service itself.
+
+**The challenge**: A voice pipeline that waits for the full LLM response before
+speaking feels broken. Several seconds of silence reads as latency and kills
+the sense of being in a conversation.
+
+**The solution**: Groq's Whisper transcribes incoming PCM audio, Groq's LLaMA
+streams the reply token by token, and at each sentence boundary the sentence
+goes straight to Groq's Orpheus TTS. Audio for sentence one starts generating
+while sentence two is still being written.
+
+**The trade-off**: Sessions live in memory, keyed by UUID, on a single server
+instance with no database. A voice demo doesn't need conversation history to
+survive a restart.
+
+**Architecture**: Browser mic → raw PCM (16kHz, 16-bit, mono) → WebSocket
+/ws/voice/{session_id} → Groq Whisper STT → Groq LLaMA streamed and buffered to
+sentence boundaries → Groq Orpheus TTS per sentence → base64 WAV chunk per
+sentence → done message.
+
+**Metrics**: Sentence-level TTS streaming rather than full-response. Full
+pipeline over one WebSocket. No separate frontend needed.
+
+**Tech stack**: FastAPI, WebSocket, Groq Whisper, Groq LLaMA, Groq Orpheus TTS.
