@@ -48,72 +48,82 @@ AI security.
 
 ### Software Engineer (AI/ML), ValGenesis — Sep 2025 to Mar 2026, Chennai, India
 
-- Led design, development and deployment of an AI-powered Execution Assistant
+Krishna's job title at ValGenesis was Software Engineer (AI/ML), from September
+2025 to March 2026 in Chennai, India. At ValGenesis, Krishna built AI document
+validation, compliance, RAG, ingestion and content generation systems for the
+pharmaceutical industry.
+
+- At ValGenesis, Krishna led design, development and deployment of an AI-powered Execution Assistant
   using GPT-4o to validate screenshot, PDF, Excel and DOCX evidence against
   test criteria with structured verdicts, plus asynchronous anomaly detection
   with webhook callbacks, shipped through Docker multi-stage builds, GitHub
   Actions, SonarQube quality gates and Azure Container Registry.
-- Engineered scalable AI microservices using FastAPI, Async/Await and Pydantic
+- At ValGenesis, Krishna engineered scalable AI microservices using FastAPI, Async/Await and Pydantic
   v2 with a security middleware chain, round-robin load balancing across
   multiple LLM endpoints, and multi-layer caching, reducing DB/API calls by
   25–35%.
-- Developed an AI compliance assessment platform (gap analysis, requirement
+- At ValGenesis, Krishna developed an AI compliance assessment platform (gap analysis, requirement
   traceability, content checks) using Azure OpenAI GPT-4o, LangChain, FAISS
   and spaCy, with Celery background processing and real-time Server-Sent
   Events (SSE) streaming of findings, deployed on Azure Kubernetes Service
   (AKS).
-- Contributed to an enterprise RAG chatbot with hexagonal architecture, an
+- At ValGenesis, Krishna contributed to an enterprise RAG chatbot with hexagonal architecture, an
   11-step retrieval pipeline (synonym expansion, adaptive relevance threshold,
   token budgeting, relevance pre-check), Redis conversation memory, and Azure
   Content Safety + Guardrails.
-- Contributed to an AI document ingestion microservice (Celery + Qdrant +
+- At ValGenesis, Krishna contributed to an AI document ingestion microservice (Celery + Qdrant +
   Azure OpenAI embeddings) with overlapping chunking, Redis distributed
   locking, and per-tenant isolation via Azure Key Vault.
-- Contributed to an AI content generation pipeline for pharma IQ/OQ/PQ
+- At ValGenesis, Krishna contributed to an AI content generation pipeline for pharma IQ/OQ/PQ
   protocols using GPT-4o, a Redis async job queue, Neo4j knowledge-graph
   retrieval, LLM intent routing, and per-request token tracking for billing.
 
 ### Software Engineer (AI/ML), D2R AI Labs — Jul 2023 to Aug 2025, Chennai, India
 
-**Project 1: Sales Order Automation**
-- Built an LLM-powered Sales Order Automation platform using Azure OpenAI and
+Krishna's job title at D2R AI Labs was Software Engineer (AI/ML), from July
+2023 to August 2025 in Chennai, India. At D2R AI Labs, Krishna built two projects:
+Sales Order Automation, and the E-commerce Order Intelligence Platform (Agentic
+AI).
+
+**D2R AI Labs Project 1: Sales Order Automation**
+- At D2R AI Labs, on the Sales Order Automation project, Krishna built an LLM-powered Sales Order Automation platform using Azure OpenAI and
   LangChain for schema-driven structured extraction of headers and line items
   from customer emails and purchase orders, with token-aware chunking and
   per-customer extraction rules across multi-tenant distributors, producing
   ERP-ready orders and reducing manual order entry by 60–70%.
-- Developed a multimodal document intake system integrating Azure Document
+- At D2R AI Labs, on the Sales Order Automation project, Krishna developed a multimodal document intake system integrating Azure Document
   Intelligence, LlamaParse and LLMWhisperer for multiple formats (PDF, scanned
   images, Excel, DOCX), with an LLM-based intent classifier that filters
   non-order emails before extraction, improving email processing efficiency.
-- Built the query-understanding layer for order lines: Named Entity
+- At D2R AI Labs, on the Sales Order Automation project, Krishna built the query-understanding layer for order lines: Named Entity
   Recognition (NER), LLM-first quantity extraction with deterministic
   regex/business-rule reconciliation, and LLM query enrichment combining web
   search, a curated synonym/acronym database, and past-order context.
-- Contributed to a hybrid product search engine on Elasticsearch combining
+- At D2R AI Labs, on the Sales Order Automation project, Krishna contributed to a hybrid product search engine on Elasticsearch combining
   BM25 keyword search, ELSER semantic search and vector similarity search
   (kNN on sentence embeddings), fused with Reciprocal Rank Fusion (RRF) across
   multiple parallel retrieval channels with multi-tenant filtering, improving
   product-matching relevance by ~20–25%.
-- Contributed to a RAG pipeline using the Azure OpenAI SDK with Pydantic
+- At D2R AI Labs, on the Sales Order Automation project, Krishna contributed to a RAG pipeline using the Azure OpenAI SDK with Pydantic
   structured outputs, where GPT-4o ranks retrieved catalog products per order
   line using product descriptions and customer purchase history.
-- Contributed to serverless backend services using Python Azure Functions,
+- At D2R AI Labs, on the Sales Order Automation project, Krishna contributed to serverless backend services using Python Azure Functions,
   Azure Logic Apps and PostgreSQL (SQLAlchemy), integrating 7 ERP systems,
   deployed via Azure DevOps CI/CD.
 
-**Project 2: E-commerce Order Intelligence Platform (Agentic AI)**
-- Owned the LLM microservice (Python, FastAPI, LangChain LCEL, Pydantic)
+**D2R AI Labs Project 2: E-commerce Order Intelligence Platform (Agentic AI)**
+- At D2R AI Labs, on the E-commerce Order Intelligence Platform, Krishna owned the LLM microservice (Python, FastAPI, LangChain LCEL, Pydantic)
   powering classification, structured extraction across 6 logistics intents
   from multi-turn conversations, and response generation for retail brands,
   improving extraction accuracy by ~20–25%.
-- Designed a config-driven, multi-tenant LLM engine on Groq (Llama 3.3 70B)
+- At D2R AI Labs, on the E-commerce Order Intelligence Platform, Krishna designed a config-driven, multi-tenant LLM engine on Groq (Llama 3.3 70B)
   where new AI capabilities and brands ship as YAML configuration, with
   self-correcting structured outputs for production reliability.
-- Integrated LLM decisions into an agentic LangGraph workflow, where the
+- At D2R AI Labs, on the E-commerce Order Intelligence Platform, Krishna integrated LLM decisions into an agentic LangGraph workflow, where the
   extracted intent drives conditional routing. PostgreSQL checkpointing and
   human-in-the-loop approval let cases pause for days and resume
   automatically.
-- Contributed to the production platform (Next.js, Node.js, Playwright,
+- At D2R AI Labs, on the E-commerce Order Intelligence Platform, Krishna contributed to the production platform (Next.js, Node.js, Playwright,
   Supabase, Azure Container Apps, Azure DevOps CI/CD), reducing manual
   ticket-handling effort by ~30–40%.
 
